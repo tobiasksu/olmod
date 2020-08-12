@@ -961,12 +961,8 @@ namespace GameMod
         static bool Prefix(Player __instance, WeaponType value)
         {
             if (!MPSniperPackets.enabled) return true;
+            if (!GameplayManager.IsMultiplayerActive) return true;
             if (NetworkServer.active && !MPTweaks.ClientHasTweak(__instance.connectionToClient.connectionId, "sniper")) return true;
-
-            if (!GameplayManager.IsMultiplayer)
-            {
-                return true;
-            }
 
             if (__instance.m_weapon_type != value)
             {
@@ -998,12 +994,8 @@ namespace GameMod
         static bool Prefix(Player __instance, WeaponType value)
         {
             if (!MPSniperPackets.enabled) return true;
+            if (!GameplayManager.IsMultiplayerActive) return true;
             if (NetworkServer.active && !MPTweaks.ClientHasTweak(__instance.connectionToClient.connectionId, "sniper")) return true;
-
-            if (!GameplayManager.IsMultiplayer)
-            {
-                return true;
-            }
 
             if (__instance.m_weapon_type_prev != value)
             {
@@ -1279,6 +1271,7 @@ namespace GameMod
         static bool Prefix(Player __instance)
         {
             if (!MPSniperPackets.enabled) return true;
+            if (!GameplayManager.IsMultiplayerActive) return true;
             if (NetworkServer.active && !MPTweaks.ClientHasTweak(__instance.connectionToClient.connectionId, "sniper")) return true;
 
             return !(GameplayManager.IsMultiplayerActive && NetworkServer.active);
@@ -1294,12 +1287,8 @@ namespace GameMod
         static bool Prefix(Player __instance, MissileType value)
         {
             if (!MPSniperPackets.enabled) return true;
+            if (!GameplayManager.IsMultiplayerActive) return true;
             if (NetworkServer.active && !MPTweaks.ClientHasTweak(__instance.connectionToClient.connectionId, "sniper")) return true;
-
-            if (!GameplayManager.IsMultiplayer)
-            {
-                return true;
-            }
 
             if (!NetworkServer.active)
             {
@@ -1328,12 +1317,8 @@ namespace GameMod
         static bool Prefix(Player __instance, MissileType value)
         {
             if (!MPSniperPackets.enabled) return true;
+            if (!GameplayManager.IsMultiplayerActive) return true;
             if (NetworkServer.active && !MPTweaks.ClientHasTweak(__instance.connectionToClient.connectionId, "sniper")) return true;
-
-            if (!GameplayManager.IsMultiplayer)
-            {
-                return true;
-            }
 
             if (__instance.m_missile_type_prev != value)
             {
