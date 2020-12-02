@@ -72,6 +72,11 @@ namespace GameMod
         public static bool HasPassword { get; set; }
         public static bool ScaleRespawnTime { get; set; }
         public static int ModifierFilterMask;
+        public static bool ClassicSpawnsEnabled
+        {
+            get { return MPClassic.matchEnabled; }
+            set { MPClassic.matchEnabled = value; }
+        }
 
         public static JObject Serialize()
         {
@@ -87,6 +92,7 @@ namespace GameMod
             jobject["haspassword"] = HasPassword;
             jobject["scalerespawntime"] = ScaleRespawnTime;
             jobject["modifierfiltermask"] = ModifierFilterMask;
+            jobject["classicspawnsenabled"] = ClassicSpawnsEnabled;
             return jobject;
         }
 
@@ -103,6 +109,7 @@ namespace GameMod
             HasPassword = root["haspassword"].GetBool(false);
             ScaleRespawnTime = root["scalerespawntime"].GetBool(false);
             ModifierFilterMask = root["modifierfiltermask"].GetInt(255);
+            ClassicSpawnsEnabled = root["classicspawnsenabled"].GetBool(false);
         }
 
         public static string GetModeString(MatchMode mode)
@@ -387,6 +394,7 @@ namespace GameMod
             MPModPrivateData.SniperPacketsEnabled = true;
             MPModPrivateData.ScaleRespawnTime = Menus.mms_scale_respawn_time;
             MPModPrivateData.ModifierFilterMask = RUtility.BoolArrayToBitmask(MPModifiers.mms_modifier_filter);
+            MPModPrivateData.ClassicSpawnsEnabled = Menus.mms_classic_spawns;
 
             var mpd = (PrivateMatchDataMessage)AccessTools.Field(typeof(NetworkMatch), "m_private_data").GetValue(null);
             MPModPrivateData.HasPassword = mpd.m_password.Contains('_');

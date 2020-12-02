@@ -12,24 +12,24 @@ namespace GameMod
         public static GameObject CurrentOwner;
     }
 
-    // Store current owner so we can tag all created explosions with this owner
-    [HarmonyPatch(typeof(Projectile), "ProcessCollision")]
-    class MPLavaTrackProcessCollision
-    {
-        static void Prefix(GameObject ___m_owner, GameObject collider, ProjPrefab ___m_type)
-        {
-            if (GameplayManager.IsMultiplayerActive && ___m_owner != null && ___m_owner.GetComponent<Player>())
-                MPLavaTrack.CurrentOwner = ___m_owner;
-            else
-                MPLavaTrack.CurrentOwner = null;
-            //Debug.Log("ProcessCollision layer=" + collider.layer + " owner = " + MPLavaTrack.CurrentOwner + " type=" + ___m_type);
-        }
-        static void Postfix()
-        {
-            MPLavaTrack.CurrentOwner = null;
-            //Debug.Log("ProcessCollision done");
-        }
-    }
+    //// Store current owner so we can tag all created explosions with this owner
+    //[HarmonyPatch(typeof(Projectile), "ProcessCollision")]
+    //class MPLavaTrackProcessCollision
+    //{
+    //    static void Prefix(GameObject ___m_owner, GameObject collider, ProjPrefab ___m_type)
+    //    {
+    //        if (GameplayManager.IsMultiplayerActive && ___m_owner != null && ___m_owner.GetComponent<Player>())
+    //            MPLavaTrack.CurrentOwner = ___m_owner;
+    //        else
+    //            MPLavaTrack.CurrentOwner = null;
+    //        //Debug.Log("ProcessCollision layer=" + collider.layer + " owner = " + MPLavaTrack.CurrentOwner + " type=" + ___m_type);
+    //    }
+    //    static void Postfix()
+    //    {
+    //        MPLavaTrack.CurrentOwner = null;
+    //        //Debug.Log("ProcessCollision done");
+    //    }
+    //}
     
     /*
     // Play is called in StartParticleInstant after SetExplosionProperties
