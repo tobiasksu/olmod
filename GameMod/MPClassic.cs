@@ -114,7 +114,7 @@ namespace GameMod
 
             if (!silent && __instance.isLocalPlayer)
             {
-                GameplayManager.AddHUDMessage(Loc.LS("IMPULSE UPGRADED TO QUADS"), -1, true);
+                GameplayManager.AddHUDMessage(Loc.LS("IMPULSE+ UPGRADED TO IMPULSE++ Q"), -1, true);
                 SFXCueManager.PlayRawSoundEffect2D(SoundEffect.hud_notify_message1, 1f, 0.15f, 0.1f, false);
                 __instance.m_weapon_level[(int)wt] = WeaponUnlock.LEVEL_2A;
             }
@@ -351,53 +351,53 @@ namespace GameMod
         }
     }
 
-    [HarmonyPatch(typeof(Projectile), "Explode")]
-    class MPClassic_Projectile_Explode
-    {
-        static bool Prefix(Projectile __instance)
-        {
-            if (MPClassic.matchEnabled && __instance.m_type == ProjPrefab.proj_thunderbolt && __instance.m_alive)
-                return false;
+    //[HarmonyPatch(typeof(Projectile), "Explode")]
+    //class MPClassic_Projectile_Explode
+    //{
+    //    static bool Prefix(Projectile __instance)
+    //    {
+    //        if (MPClassic.matchEnabled && __instance.m_type == ProjPrefab.proj_thunderbolt && __instance.m_alive)
+    //            return false;
 
-            return true;
-        }
-    }
+    //        return true;
+    //    }
+    //}
 
-    [HarmonyPatch(typeof(Projectile), "ProcessCollision")]
-    class MPClassic_Projectile_ProcessCollision
-    {
+    //[HarmonyPatch(typeof(Projectile), "ProcessCollision")]
+    //class MPClassic_Projectile_ProcessCollision
+    //{
 
-        static void ThunderboltExplode(Projectile proj, int layer)
-        {
-            if (!MPClassic.matchEnabled)
-                return;
+    //    static void ThunderboltExplode(Projectile proj, int layer)
+    //    {
+    //        if (!MPClassic.matchEnabled)
+    //            return;
 
-            if (layer != 11 && layer != 16)
-            {
-                proj.m_alive = false;
-                proj.Explode(false);
-            }
-        }
+    //        if (layer != 11 && layer != 16)
+    //        {
+    //            proj.m_alive = false;
+    //            proj.Explode(false);
+    //        }
+    //    }
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
-        {
-            int state = 0;
-            foreach (var code in codes)
-            {
-                if (code.opcode == OpCodes.Ldc_I4_S && (sbyte)code.operand == 16)
-                    state = 1;
+    //    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+    //    {
+    //        int state = 0;
+    //        foreach (var code in codes)
+    //        {
+    //            if (code.opcode == OpCodes.Ldc_I4_S && (sbyte)code.operand == 16)
+    //                state = 1;
 
-                if (state == 1 && code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(Projectile), "Explode"))
-                {
-                    yield return code;
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Ldloc_2);
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPClassic_Projectile_ProcessCollision), "ThunderboltExplode"));
-                    continue;
-                }
+    //            if (state == 1 && code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(Projectile), "Explode"))
+    //            {
+    //                yield return code;
+    //                yield return new CodeInstruction(OpCodes.Ldarg_0);
+    //                yield return new CodeInstruction(OpCodes.Ldloc_2);
+    //                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPClassic_Projectile_ProcessCollision), "ThunderboltExplode"));
+    //                continue;
+    //            }
 
-                yield return code;
-            }
-        }
-    }
+    //            yield return code;
+    //        }
+    //    }
+    //}
 }

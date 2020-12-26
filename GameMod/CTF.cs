@@ -33,6 +33,7 @@ namespace GameMod
         public const float ReturnTimeAmountDefault = 30;
         public static float ReturnTimeAmount = ReturnTimeAmountDefault;
         public static bool ShowReturnTimer = false;
+        public static bool BoostMatchEnabled = true;
 
         public static bool IsActive
         {
@@ -903,6 +904,28 @@ namespace GameMod
             position.x -= 110f;
             position.y += 20f;
             CTF.DrawFlags(__instance, position, ___m_alpha);
+        }
+    }
+
+    [HarmonyPatch(typeof(Player), "IsPressed")]
+    class Player_IsPressed
+    {
+        static void Postfix(CCInput cc_type, ref bool __result, Player __instance)
+        {
+            if (!CTF.BoostMatchEnabled && (!__instance.isLocalPlayer || !uConsole.IsOn()) && __instance.m_input_count[(int)cc_type] >= 1 && cc_type == CCInput.USE_BOOST && GameplayManager.IsMultiplayer && IsFlagrunner(__instance.c_player_ship))
+            {
+                GameplayManager.AddHUDMessage(Loc.LS("BOOST DISABLED FOR FLAGRUNNER"), -1);
+                __result = false;
+            }
+            else
+            {
+                __result = (!__instance.isLocalPlayer || !uConsole.IsOn()) && __instance.m_input_count[(int)cc_type] >= 1;
+            }
+        }
+
+        public static bool IsFlagrunner(PlayerShip playerShip)
+        {
+            return CTF.PlayerHasFlag.ContainsKey(playerShip.c_player.netId);
         }
     }
 }
