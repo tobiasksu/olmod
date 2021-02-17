@@ -227,6 +227,7 @@ namespace GameMod
         }
     }
 
+    // Add UI for Weapon/Ship Lag Compensation, remove obsolete cross-platform options
     [HarmonyPatch(typeof(UIElement), "DrawMpOptions")]
     class Menus_UIElement_DrawMpOptions
     {
@@ -305,17 +306,49 @@ namespace GameMod
 
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
         {
+            int state = 0;
             foreach (var code in codes)
             {
                 if (code.opcode == OpCodes.Ldc_R4 && (float)code.operand == 155f) {
                     code.operand = 279f;
                 }
+
                 if (code.opcode == OpCodes.Ldstr && (string)code.operand == "QUICK CHAT")
                 {
                     yield return new CodeInstruction(OpCodes.Ldloca, 0);
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_UIElement_DrawMpOptions), "DrawLagSliders"));
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
                 }
+
+                // Remove deprecated "Cross-Platform Play" option
+                // Skip block of code starting at first DrawMenuSeparator call through position.y += 62f
+                if (state == 0 && code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(UIElement), "DrawMenuSeparator"))
+                {
+                    state = 1;
+                    yield return code;
+                    continue;
+                }
+
+                if (state == 1)
+                {
+                    if (code.opcode == OpCodes.Stfld && code.operand == AccessTools.Field(typeof(Vector2), "y"))
+                        state = 2;
+                    continue;
+                }
+
+                // Remove deprecated "Cross-Platform Chat" option
+                // Skip starting at the ldstr call (preserving ldarg_0 for next call) and ending at the next ldarg_0 for Auto-Respawn Timer
+                if (state == 2 && code.opcode == OpCodes.Ldstr && (string)code.operand == "CROSS-PLATFORM CHAT") {
+                    state = 3;
+                }
+
+                if (state == 3)
+                {
+                    if (code.opcode == OpCodes.Ldarg_0)
+                        state = 4;
+                    continue;
+                }
+                
                 yield return code;
             }
         }
