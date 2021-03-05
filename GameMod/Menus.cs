@@ -548,13 +548,16 @@ namespace GameMod
 
 
         // Tweak of original SelectAndDrawSliderItem to support non-100 max, tooltip
-        public static void SelectAndDrawSliderItem(UIElement uie, string s, Vector2 pos, int selection, float amt, float max, string tool_tip)
+        public static void SelectAndDrawSliderItem(UIElement uie, string s, Vector2 pos, int selection, float amt, float max, string tool_tip, bool fade = false)
         {
             float num = 750f;
-            uie.TestMouseInRect(pos, num * 0.5f + 22f, 24f, selection, true);
+            int quad_index = UIManager.m_quad_index;
+            if (!fade)
+                uie.TestMouseInRect(pos, num * 0.5f + 22f, 24f, selection, true);
             float x = pos.x;
             pos.x += num * 0.5f - 123f;
-            uie.TestMouseInRectSlider(pos, 132f, 22f, selection, false);
+            if (!fade)
+                uie.TestMouseInRectSlider(pos, 132f, 22f, selection, false);
             pos.x = x;
             bool flag = UIManager.m_menu_selection == selection;
             if (flag)
@@ -611,6 +614,8 @@ namespace GameMod
                 uie.DrawOutlineBackdrop(pos, 17f, 246f, color, 2);
             }
             UIManager.DrawQuadUIInner(pos - Vector2.right * (132f - (132f * (amt / max))), 132f * (amt / max), 10f, c, uie.m_alpha, 11, 0.75f);
+            if (fade)
+                UIManager.PreviousQuadsAlpha(quad_index, 0.3f);
         }
 
         public static void DrawMenuToolTipMultiline(UIElement uie, Vector2 pos, float offset = 15f)
