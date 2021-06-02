@@ -7,7 +7,8 @@ using Harmony;
 using Overload;
 using UnityEngine;
 
-namespace GameMod {
+namespace GameMod
+{
     static class MPTeams
     {
         public static int NetworkMatchTeamCount;
@@ -29,7 +30,8 @@ namespace GameMod {
 
         public static IEnumerable<MpTeam> Teams
         {
-            get {
+            get
+            {
                 return AllTeams.Take(NetworkMatchTeamCount);
             }
         }
@@ -52,10 +54,13 @@ namespace GameMod {
             }
         }
 
-        public static MpTeam[] TeamsByScore {
-            get {
+        public static MpTeam[] TeamsByScore
+        {
+            get
+            {
                 var teams = ActiveTeams.ToArray();
-                Array.Sort<MpTeam>(teams, new Comparison<MpTeam>((i1, i2) => {
+                Array.Sort<MpTeam>(teams, new Comparison<MpTeam>((i1, i2) =>
+                {
                     var n = NetworkMatch.m_team_scores[(int)i2].CompareTo(NetworkMatch.m_team_scores[(int)i1]);
                     return n == 0 ? i1.CompareTo(i2) : n;
                 }));
@@ -110,7 +115,8 @@ namespace GameMod {
             int max_row_count = NetworkMatch.GetMaxPlayersForMatch() + MPTeams.NetworkMatchTeamCount;
             int cur_row_count = NetworkMatch.m_players.Count() + MPTeams.NetworkMatchTeamCount;
             bool split = max_row_count > 10;
-            if (split) {
+            if (split)
+            {
                 pos.x -= 300f;
                 pos.y += 50f + 24f;
             }
@@ -177,13 +183,6 @@ namespace GameMod {
             uie.DrawStringSmall(NetworkMatch.GetTeamName(team), pos - Vector2.right * (w + 9f), 0.6f, StringOffset.LEFT, color, 1f, -1f);
         }
 
-        private static MethodInfo _UIElement_DrawScoresForTeam_Method = AccessTools.Method(typeof(UIElement), "DrawScoresForTeam");
-        public static int DrawScoresForTeam(UIElement uie, MpTeam team, Vector2 pos, float col1, float col2, float col3, float col4, float col5)
-        {
-            return (int)_UIElement_DrawScoresForTeam_Method.Invoke(uie,
-                new object[] { team, pos, col1, col2, col3, col4, col5 });
-        }
-
         private static MethodInfo _UIElement_DrawScoreHeader_Method = AccessTools.Method(typeof(UIElement), "DrawScoreHeader");
         public static void DrawScoreHeader(UIElement uie, Vector2 pos, float col1, float col2, float col3, float col4, float col5, bool score = false)
         {
@@ -199,7 +198,8 @@ namespace GameMod {
             Color c = UIManager.m_col_ui5;
             string s = Loc.LS("MATCH OVER!");
             var teams = TeamsByScore;
-            if (teams.Length >= 2 && NetworkMatch.m_team_scores[(int)teams[0]] != NetworkMatch.m_team_scores[(int)teams[1]]) {
+            if (teams.Length >= 2 && NetworkMatch.m_team_scores[(int)teams[0]] != NetworkMatch.m_team_scores[(int)teams[1]])
+            {
                 c = TeamColor(teams[0], 4);
                 s = TeamName(teams[0]) + " WINS!";
             }
@@ -283,6 +283,9 @@ namespace GameMod {
             MpTeam myTeam = GameManager.m_local_player.m_mp_team;
             foreach (var team in MPTeams.TeamsByScore)
             {
+                if (!NetworkManager.m_PlayersForScoreboard.Any(x => x.m_mp_team == team))
+                    continue;
+
                 MPTeams.DrawTeamScoreSmall(__instance, pos, team, NetworkMatch.GetTeamScore(team), 98f, team == myTeam);
                 pos.y += 28f;
             }
@@ -305,54 +308,6 @@ namespace GameMod {
                 uie.DrawQuickChatMP(pos);
             }
 
-            return false;
-        }
-    }
-
-    [HarmonyPatch(typeof(UIElement), "DrawMpScoreboardRaw")]
-    static class MPTeamsScore
-    {
-        static bool Prefix(UIElement __instance, ref Vector2 pos)
-        {
-            var mode = NetworkMatch.GetMode();
-            var fitSingle = MPTeams.NetworkMatchTeamCount == 2 && NetworkMatch.m_players.Count <= 8;
-            if (MPModPrivateData.MatchMode == ExtMatchMode.RACE)
-                return true;
-            if (mode == MatchMode.ANARCHY || ((mode == MatchMode.TEAM_ANARCHY || mode == MatchMode.MONSTERBALL) && fitSingle))
-                return true;
-
-            float colReduce = fitSingle ? 0 : 50f;
-            float col1 = fitSingle ? -330f : -250f;
-            float col2 = 100f - colReduce;
-            float col3 = 190f - colReduce;
-            float col4 = 280f - colReduce;
-            float col5 = 350f - colReduce;
-
-            MpTeam myTeam = GameManager.m_local_player.m_mp_team;
-            int col = 0;
-            float x = pos.x;
-            float y = pos.y;
-            float[] ys = new float[2] { pos.y, pos.y };
-            foreach (var team in MPTeams.TeamsByScore)
-            {
-                pos.x = x + (fitSingle ? 0 : col == 0 ? -325f : 325f);
-                pos.y = ys[col];
-                MPTeams.DrawTeamScore(__instance, pos, team, NetworkMatch.GetTeamScore(team), col5, team == myTeam);
-                pos.y += 35f;
-                if (ys[col] == y || fitSingle) // only draw header for first team in column
-                {
-                    MPTeams.DrawScoreHeader(__instance, pos, col1, col2, col3, col4, col5, false);
-                    pos.y += 15f;
-                    __instance.DrawVariableSeparator(pos, 350f);
-                    pos.y += 20f;
-                }
-                int num = MPTeams.DrawScoresForTeam(__instance, team, pos, col1, col2, col3, col4, col5);
-                pos.y += (float)num * 25f + 35f;
-                ys[col] = pos.y;
-                if (!fitSingle)
-                    col = 1 - col;
-            }
-            pos.y = Mathf.Max(ys[0], ys[1]);
             return false;
         }
     }
@@ -383,6 +338,9 @@ namespace GameMod {
             MpTeam myTeam = GameManager.m_local_player.m_mp_team;
             foreach (var team in MPTeams.TeamsByScore)
             {
+                if (!NetworkManager.m_PlayersForScoreboard.Any(x => x.m_mp_team == team))
+                    continue;
+
                 pos.y += 28f;
                 int score = NetworkMatch.GetTeamScore(team);
                 MPTeams.DrawTeamScoreSmall(__instance, pos, team, score, 98f, team == myTeam);
@@ -442,7 +400,7 @@ namespace GameMod {
                 NetworkMatch.m_team_scores[i] = 0;
         }
     }
-    
+
     // team balancing for new player
     [HarmonyPatch(typeof(NetworkMatch), "NetSystemGetTeamForPlayer")]
     static class MPTeamsForPlayer
@@ -573,7 +531,7 @@ namespace GameMod {
 
             int state = 0; // 0 = before switch, 1 = after switch
             int oneSixtyCount = 0;
-            for (var codes = instructions.GetEnumerator(); codes.MoveNext(); )
+            for (var codes = instructions.GetEnumerator(); codes.MoveNext();)
             {
                 var code = codes.Current;
                 // add call before switch m_menu_micro_state
@@ -608,7 +566,7 @@ namespace GameMod {
                     }
                 }
                 yield return code;
-            }                
+            }
         }
     }
 
@@ -685,24 +643,6 @@ namespace GameMod {
             }
             while (codes.MoveNext())
                 yield return codes.Current;
-        }
-    }
-
-    [HarmonyPatch(typeof(UIElement), "DrawScoresForTeam")]
-    class MPTeamsScoresForTeam
-    {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-        {
-            var codes = instructions.GetEnumerator();
-            int cnt = 0;
-            while (codes.MoveNext())
-            {
-                var code = codes.Current;
-                yield return code;
-                if (code.opcode == OpCodes.Ldarg_1 && (++cnt == 2 || cnt == 3))
-                    foreach (var c in MPTeamsHUDArmor.ChangeTeamColorLoad(codes, cnt == 2 ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_4))
-                        yield return c;
-            }
         }
     }
 
@@ -793,8 +733,10 @@ namespace GameMod {
             var vector2_y_Field = AccessTools.Field(typeof(Vector2), "y");
 
             int lastAdv = 0;
-            foreach (var c in cs) {
-                if (lastAdv == 0 && c.opcode == OpCodes.Ldstr && (string)c.operand == "ADVANCED SETTINGS") {
+            foreach (var c in cs)
+            {
+                if (lastAdv == 0 && c.opcode == OpCodes.Ldstr && (string)c.operand == "ADVANCED SETTINGS")
+                {
                     yield return new CodeInstruction(OpCodes.Ldloca_S, 0);
                     yield return new CodeInstruction(OpCodes.Dup);
                     yield return new CodeInstruction(OpCodes.Ldfld, vector2_y_Field);
@@ -802,9 +744,13 @@ namespace GameMod {
                     yield return new CodeInstruction(OpCodes.Add);
                     yield return new CodeInstruction(OpCodes.Stfld, vector2_y_Field);
                     lastAdv = 1;
-                } else if ((lastAdv == 1 || lastAdv == 2) && c.opcode == OpCodes.Call) {
+                }
+                else if ((lastAdv == 1 || lastAdv == 2) && c.opcode == OpCodes.Call)
+                {
                     lastAdv++;
-                } else if (lastAdv == 3) {
+                }
+                else if (lastAdv == 3)
+                {
                     if (c.opcode != OpCodes.Ldloca_S)
                         continue;
                     lastAdv = 4;
@@ -820,7 +766,7 @@ namespace GameMod {
         }
 
     }
-  
+
     [HarmonyPatch(typeof(MenuManager), "MpMatchSetup")]
     class MPTeamsMenuHandle
     {
@@ -898,43 +844,6 @@ namespace GameMod {
                     continue;
                 }
 
-                yield return code;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Sort players in Team Anarchy scoreboard by Kills, Assists, then Deaths instead of Anarchy scoring
-    /// </summary>
-    [HarmonyPatch(typeof(UIElement), "DrawScoresForTeam")]
-    class MPTeams_UIElement_DrawScoresForTeams
-    {
-        static List<int> SortTeamScores(List<int> list)
-        {
-            List<Player> players = Overload.NetworkManager.m_PlayersForScoreboard;
-            list.Sort((int a, int b) =>
-                players[a].m_kills != players[b].m_kills
-                    ? players[b].m_kills.CompareTo(players[a].m_kills)
-                    : (players[a].m_assists != players[b].m_assists ? players[b].m_assists.CompareTo(players[a].m_assists) : players[a].m_deaths.CompareTo(players[b].m_deaths))
-            );
-            return list;
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
-        {
-            var list_int_Reverse_Method = AccessTools.Method(typeof(List<int>), "Reverse");
-            var mpTeams_UIElement_DrawScoresForTeams_SortTeamScores_Method = AccessTools.Method(typeof(MPTeams_UIElement_DrawScoresForTeams), "SortTeamScores");
-
-            foreach (var code in codes)
-            {
-                if (code.opcode == OpCodes.Callvirt && code.operand == list_int_Reverse_Method)
-                {
-                    yield return code;
-                    yield return new CodeInstruction(OpCodes.Ldloc_2);
-                    yield return new CodeInstruction(OpCodes.Call, mpTeams_UIElement_DrawScoresForTeams_SortTeamScores_Method);
-                    yield return new CodeInstruction(OpCodes.Stloc_2);
-                    continue;
-                }
                 yield return code;
             }
         }

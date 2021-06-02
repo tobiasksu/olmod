@@ -1237,6 +1237,8 @@ END_ENTRY
             set { MPMatchTimeLimits.MatchTimeLimit = value; }
         }
 
+        public static bool AssistScoring { get; set; }
+
         public static JObject Serialize()
         {
             JObject jobject = new JObject();
@@ -1257,6 +1259,7 @@ END_ENTRY
             jobject["allowsmash"] = AllowSmash;
             jobject["customprojdata"] = CustomProjdata;
             jobject["matchtimelimit"] = MatchTimeLimit;
+            jobject["assistscoring"] = AssistScoring;
             return jobject;
         }
 
@@ -1283,6 +1286,8 @@ END_ENTRY
             // If client sent new match time limit, apply otherwise ignore (e.g. old olmod client)
             if (MatchTimeLimit >= 0)
                 NetworkMatch.m_match_time_limit_seconds = MatchTimeLimit;
+
+            AssistScoring = root["assistscoring"].GetBool(true);
         }
 
         public static string GetModeString(MatchMode mode)
@@ -1572,6 +1577,7 @@ END_ENTRY
             MPModPrivateData.AlwaysCloaked = Menus.mms_always_cloaked;
             MPModPrivateData.AllowSmash = Menus.mms_allow_smash;
             MPModPrivateData.MatchTimeLimit = Menus.mms_match_time_limit == 0 ? int.MaxValue : Menus.mms_match_time_limit;
+            MPModPrivateData.AssistScoring = Menus.mms_assist_scoring;
             if (Menus.mms_mp_projdata_fn == "STOCK") {
                 MPModPrivateData.CustomProjdata = string.Empty;
             } else {
