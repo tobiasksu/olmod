@@ -1249,4 +1249,50 @@ namespace GameMod
         }
     }
 
+    // Creeper color
+    [HarmonyPatch(typeof(Projectile), "Initialize")]
+    class MPTeams_Projectile_Initialize
+    {
+        static void Postfix(Projectile __instance)
+        {
+            if (GameplayManager.IsMultiplayerActive && !GameplayManager.IsDedicatedServer() && NetworkMatch.IsTeamMode(NetworkMatch.GetMode()))
+            {
+                if (__instance.m_type == ProjPrefab.missile_creeper)
+                {
+                    var teamcolor = UIManager.ChooseMpColor((MpTeam)UnityEngine.Random.Range(0, 9));
+                    foreach (var light in __instance.c_go.GetComponentsInChildren<Light>())
+                    {
+                        Debug.Log("Light: " + light.name);
+                        light.color = teamcolor;
+                    }
+                    foreach (var rend in __instance.c_go.GetComponentsInChildren<Renderer>())
+                    {
+                        Debug.Log("Renderer: " + rend.name);
+
+                        foreach (var mat in rend.materials)
+                        {
+                            Debug.Log("Material: " + mat.name);
+                            mat.color = teamcolor;
+                            mat.SetVector("_EmissionColor", teamcolor);
+                        }
+                    }
+                    //foreach (var x in __instance.c_go.GetComponentsInChildren<Component>())
+                    //{
+                    //    Debug.Log("Component: " + x.name + ", Type: " + x.GetType().ToString());
+                    //}
+                    foreach (var x in __instance.c_go.GetComponentsInChildren<ParticleSystem>())
+                    {
+                        Debug.Log("ParticleSystem: " + x.name + ", startColor: " + x.startColor);
+                        x.startColor = teamcolor;
+                    }
+
+                    foreach (var x in __instance.c_go.GetComponentsInChildren<ParticleSystemRenderer>())
+                    {
+                        Debug.Log("ParticleSystemRenderer:" + x.name);
+                    }
+                }
+            }
+        }
+    }
+
 }
