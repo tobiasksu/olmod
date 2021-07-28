@@ -12,8 +12,8 @@ namespace GameMod
     {
         static int CreeperDropAmount(Item item)
         {
-            // Stock game dropped 12 on pickup in MP, change to 6 (leave other modes to default inherited 12)
-            return GameplayManager.IsMultiplayerActive ? 6 : item.m_amount;
+            // Stock game dropped 12 on pickup in MP, change to 8 (leave other modes to default inherited 12)
+            return GameplayManager.IsMultiplayerActive ? 8 : item.m_amount;
         }
 
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
