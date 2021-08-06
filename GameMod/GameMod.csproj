@@ -189,9 +189,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="0Harmony.dll" />
+    <Content Include="winhttp.dll" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Directory.Build.targets" />
+    <None Include="doorstop_config.ini" />
     <None Include="olmodsettings.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
