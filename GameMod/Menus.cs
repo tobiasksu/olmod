@@ -369,7 +369,7 @@ namespace GameMod
                     case 16:
                         if (UIManager.PushedSelect(100))
                         {
-                            var files = new string[] { "STOCK" }.AddRangeToArray(Directory.GetFiles(Config.OLModDir, "projdata-*.txt"));
+                            var files = new string[] { "STOCK" }.AddRangeToArray(Directory.GetFiles(Core.Config.OLModDir, "projdata-*.txt"));
                             for (int i = 0; i < files.Length; i++)
                             {
                                 uConsole.Log(files[i] + ": " + files.Length.ToString());
@@ -590,7 +590,7 @@ namespace GameMod
                     state = 1;
                     // A simple Postfix breaks the left arrow functionality, have to transpile after MaybeReverseOption
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_MpOptionsUpdate), "Update")) { labels = code.labels };
-                    code.labels = null;
+                    code.labels = new List<Label>();
                 }
                 yield return code;
             }

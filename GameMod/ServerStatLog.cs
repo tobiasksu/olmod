@@ -188,8 +188,8 @@ namespace GameMod {
         {
             string url;
             Debug.LogFormat("{0}: TrackerPost {1} {2}", DateTime.Now.ToString(), path, body.ToString(Formatting.None));
-            if (!Config.Settings.Value<bool>("isServer") ||
-                string.IsNullOrEmpty(url = Config.Settings.Value<string>("trackerBaseUrl")))
+            if (!Core.Config.Settings.Value<bool>("isServer") ||
+                string.IsNullOrEmpty(url = Core.Config.Settings.Value<string>("trackerBaseUrl")))
                 return;
             Post(url + path, body);
         }

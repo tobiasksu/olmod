@@ -558,16 +558,15 @@ namespace GameMod
             return typeof(NetworkMatch).GetNestedType("HostActiveMatchInfo", BindingFlags.NonPublic | BindingFlags.Instance)
                 .GetMethod("CanStartNow", BindingFlags.Public | BindingFlags.Instance);
         }
+
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> cs)
         {
             foreach (var c in cs)
             {
-                if (c.opcode == OpCodes.Ldsfld && ((FieldInfo)c.operand).Name == "m_match_mode")
+                if (c.opcode == OpCodes.Ldsfld && c.operand == AccessTools.Field(typeof(NetworkMatch), "m_match_mode"))
                 {
-                    var c2 = new CodeInstruction(OpCodes.Ldc_I4_1) { labels = c.labels };
-                    yield return c2;
-                    yield return new CodeInstruction(OpCodes.Ret);
-                    c.labels = null;
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_1) { labels = c.labels };
+                    continue;
                 }
                 yield return c;
             }

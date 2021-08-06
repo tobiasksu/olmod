@@ -182,7 +182,7 @@ namespace GameMod
         {
             HashSet<string> urls = new HashSet<string>() { "https://otl.gg/olmod/settings.json", "https://octcache.playoverload.online/O1L.json" };
             JToken jUrls = null;
-            Config.Settings.TryGetValue("matchPresetUrls", out jUrls);
+            Core.Config.Settings.TryGetValue("matchPresetUrls", out jUrls);
             if (jUrls != null)
             {
                 foreach (var jUrl in jUrls)

@@ -15,8 +15,8 @@ namespace GameMod
 
         public static void Postfix()
         {
-            if (!Config.Settings.Value<bool>("isServer") ||
-                string.IsNullOrEmpty(url = Config.Settings.Value<string>("trackerBaseUrl")))
+            if (!Core.Config.Settings.Value<bool>("isServer") ||
+                string.IsNullOrEmpty(url = Core.Config.Settings.Value<string>("trackerBaseUrl")))
                 return;
 
             if (!started && NetworkManager.IsHeadless())
@@ -31,9 +31,9 @@ namespace GameMod
             for (;;) {
                 ServerStatLog.TrackerPost("/api/ping", JObject.FromObject(new
                 {
-                    keepListed = Config.Settings.Value<bool>("keepListed"),
-                    name = Config.Settings.Value<string>("serverName"),
-                    notes = Config.Settings.Value<string>("notes"),
+                    keepListed = Core.Config.Settings.Value<bool>("keepListed"),
+                    name = Core.Config.Settings.Value<string>("serverName"),
+                    notes = Core.Config.Settings.Value<string>("notes"),
                     version = VersionHandling.OlmodVersion.FullVersionString
                 }));
                 yield return new WaitForSecondsRealtime(5 * 60);

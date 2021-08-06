@@ -4,7 +4,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace GameMod {
+namespace GameMod.Core {
     static class Config
     {
         public static string OLModDir;
@@ -39,8 +39,6 @@ namespace GameMod {
             OLModDir = Environment.GetEnvironmentVariable("OLMODDIR");
             if (OLModDir == null || OLModDir == "") {
                 OLModDir = Path.GetDirectoryName(typeof(Core.GameMod).Assembly.Location);
-                //if (OLModDir != null && OLModDir.EndsWith(Path.DirectorySeparatorChar + "Overload_Data" + Path.DirectorySeparatorChar + "Managed", StringComparison.InvariantCultureIgnoreCase))
-                //    OLModDir = Path.GetDirectoryName(Path.GetDirectoryName(OLModDir));
             }
             Debug.Log("olmod directory " + OLModDir);
             NoDownload = Core.GameMod.FindArg("-nodownload");

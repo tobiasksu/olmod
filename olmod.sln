@@ -3,12 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "olmod", "olmod\olmod.vcxproj", "{CFB62AD7-1212-4E0F-A695-1503E89A578F}"
-	ProjectSection(ProjectDependencies) = postProject
-		{FB32EB50-DE78-4FFB-8DE8-C3C8A82E8B62} = {FB32EB50-DE78-4FFB-8DE8-C3C8A82E8B62}
-		{5F11C292-D523-4C7F-88FA-3414F62A001A} = {5F11C292-D523-4C7F-88FA-3414F62A001A}
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameMod", "GameMod\GameMod.csproj", "{FB32EB50-DE78-4FFB-8DE8-C3C8A82E8B62}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "olgetdata", "olgetdata\olgetdata.csproj", "{5F11C292-D523-4C7F-88FA-3414F62A001A}"
@@ -26,14 +20,6 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Debug|Any CPU.Build.0 = Debug|x64
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Debug|x64.ActiveCfg = Debug|x64
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Debug|x64.Build.0 = Debug|x64
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Release|Any CPU.ActiveCfg = Release|x64
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Release|Any CPU.Build.0 = Release|x64
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Release|x64.ActiveCfg = Release|x64
-		{CFB62AD7-1212-4E0F-A695-1503E89A578F}.Release|x64.Build.0 = Release|x64
 		{FB32EB50-DE78-4FFB-8DE8-C3C8A82E8B62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FB32EB50-DE78-4FFB-8DE8-C3C8A82E8B62}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FB32EB50-DE78-4FFB-8DE8-C3C8A82E8B62}.Debug|x64.ActiveCfg = Debug|Any CPU

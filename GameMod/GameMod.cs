@@ -8,16 +8,19 @@ using GameMod.VersionHandling;
 using HarmonyLib;
 using Overload;
 using UnityEngine;
+using BepInEx;
 
 namespace GameMod.Core {
-    public class GameMod
+
+    [BepInPlugin("fb32eb50-de78-4ffb-8de8-c3c8a82e8b62", "olmod", "0.4.4")]
+    public class GameMod : BepInEx.BaseUnityPlugin
     {
         private static Version GameVersion;
         public static bool Modded = false;
         public static bool VREnabled = false;
         public static string ModsLoaded = "";
 
-        public static void Initialize()
+        public void Awake()
         {
             if (GameVersion != null)
             {
@@ -31,9 +34,10 @@ namespace GameMod.Core {
             GameVersion = typeof(GameManager).Assembly.GetName().Version;
             Debug.Log("Initializing " + OlmodVersion.FullVersionString + ", game " + GameVersion);
             Debug.Log("Command line " + String.Join(" ", Environment.GetCommandLineArgs()));
-            Config.Init();
+            Core.Config.Init();
             MPInternet.CheckInternetServer();
-            Harmony.DEBUG = FindArg("-harmonydebug");
+            Harmony.DEBUG = true; // FindArg("-harmonydebug");
+            HarmonyLib.Tools.HarmonyFileLog.Enabled = true;
             var harmony = new Harmony("olmod.olmod");
             try
             {
@@ -45,12 +49,12 @@ namespace GameMod.Core {
             }
             Debug.Log("Done initializing " + OlmodVersion.FullVersionString);
 
-            if (Modded && Config.OLModDir != null && Config.OLModDir != "")
+            if (Modded && Core.Config.OLModDir != null && Core.Config.OLModDir != "")
             {
                 Modded = false; // Modded mode was on, we turn it off here because we don't want to have it on if there aren't actually any mods.
                 try
                 {
-                    var files = Directory.GetFiles(Config.OLModDir, "Mod-*.dll");
+                    var files = Directory.GetFiles(Core.Config.OLModDir, "Mod-*.dll");
                     ModsLoaded = string.Join(",", files);
 
                     foreach (var f in files)
@@ -179,23 +183,23 @@ namespace GameMod.Core {
         }
     }
 
-    // GSync fix
-    [HarmonyPatch(typeof(GameManager), "UpdateTargetFramerate")]
-    class GSyncFix
-    {
-        static bool Prefix()
-        {
-            if (GameplayManager.IsDedicatedServer())
-            {
-                Application.targetFrameRate = 120;
-            }
-            else
-            {
-                Application.targetFrameRate = -1;
-            }
-            return false;
-        }
-    }
+    //// GSync fix
+    //[HarmonyPatch(typeof(GameManager), "UpdateTargetFramerate")]
+    //class GSyncFix
+    //{
+    //    static bool Prefix()
+    //    {
+    //        if (GameplayManager.IsDedicatedServer())
+    //        {
+    //            Application.targetFrameRate = 120;
+    //        }
+    //        else
+    //        {
+    //            Application.targetFrameRate = -1;
+    //        }
+    //        return false;
+    //    }
+    //}
 
     // Shenanigans.
     [HarmonyPatch(typeof(StringParse), "IsNiceWord")]
