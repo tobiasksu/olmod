@@ -9,13 +9,28 @@ using HarmonyLib;
 using Overload;
 using UnityEngine;
 
-namespace GameMod.Core {
+namespace GameMod.Core
+{
     public class GameMod
     {
         private static Version GameVersion;
         public static bool Modded = false;
         public static bool VREnabled = false;
         public static string ModsLoaded = "";
+
+        public static void Main()
+        {
+            AppDomain.CurrentDomain.AssemblyLoad += new AssemblyLoadEventHandler(GameModLoadEventHandler);
+        }
+
+        // Wait until UnityEngine.CoreModule is loaded before initializing
+        static void GameModLoadEventHandler(object sender, AssemblyLoadEventArgs args)
+        {
+            if (args.LoadedAssembly.FullName.Contains("UnityEngine.CoreModule"))
+            {
+                Initialize();
+            }
+        }
 
         public static void Initialize()
         {
