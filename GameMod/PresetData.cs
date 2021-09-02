@@ -112,10 +112,43 @@ namespace GameMod
         {
             var dataReader_GetProjData_Method = typeof(DataReader).GetMethod("GetProjData");
             foreach (var code in instructions)
+            {
                 if (code.opcode == OpCodes.Callvirt && ((MethodInfo)code.operand).Name == "get_text")
+                {
                     yield return new CodeInstruction(OpCodes.Call, dataReader_GetProjData_Method);
-                else
+                    continue;
+                }
+
+                if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(RUtility), "ReadField"))
+                {
                     yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 6);
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 10);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_0);
+                    yield return new CodeInstruction(OpCodes.Ldelem_Ref);
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 10);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_1);
+                    yield return new CodeInstruction(OpCodes.Ldelem_Ref);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ReadProjPresetDataPatch), "MaybeReadProjectileExt"));
+                    continue;
+                }
+                yield return code;
+            }
+        }
+
+        static void MaybeReadProjectileExt(GameObject[] prefabs, int arrIdx, string name, string value)
+        {
+            Debug.Log($"MaybeReadProjectileExt({prefabs.Length}, {arrIdx}, {name}, {value})");
+            ProjectileExt component = prefabs[arrIdx].GetComponent<ProjectileExt>();
+            if (component)
+            {
+                if (name.StartsWith("olmod"))
+                {
+                    Debug.Log($"Processing {name}");
+                    RUtility.ReadField(component, name, value);
+                }
+            }
         }
     }
 
@@ -205,4 +238,100 @@ namespace GameMod
             }
         }
     }
+
+    //[HarmonyPatch(typeof(RUtility), "ReadField")]
+    //class PresetData_RUtility_ReadField
+    //{
+    //    static bool Prefix(object obj, string name, string value)
+    //    {
+    //        try
+    //        {
+    //            switch (name)
+    //            {
+    //                case "m_ammo_consumption":
+    //                case "m_energy_consumption":
+    //                default:
+    //                    return true;
+    //            }
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            Debug.Log("Custom projdata error: " + ex.Message);
+    //        }
+    //        return true;
+    //    }
+    //}
+
+    [HarmonyPatch]
+    class PresetData_ProjectileManager_Init
+    {
+        static MethodBase TargetMethod()
+        {
+            foreach (var x in typeof(ProjectileManager).GetNestedTypes(BindingFlags.NonPublic))
+            {
+                if (x.Name.Contains("Init"))
+                {
+                    return x.GetMethod("MoveNext");
+                }
+            }
+            return null;
+        }
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+        {
+            int state = 0;
+            foreach (var code in codes)
+            {
+                if (code.opcode == OpCodes.Stelem_Ref)
+                {
+                    state++;
+                    if (state == 3)
+                    {
+                        state = 4;
+                        yield return code;
+                        yield return new CodeInstruction(OpCodes.Ldloc_1);
+                        yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(PresetData_ProjectileManager_Init), "PatchInit"));
+                        continue;
+                    }
+                }
+                yield return code;
+            }
+        }
+
+        static void PatchInit(int arrIdx)
+        {
+            ProjectileManager.proj_prefabs[arrIdx].AddComponent<ProjectileExt>();
+        }
+    }
+
+    //[HarmonyPatch(typeof(PlayerShip), "MaybeFireWeapon")]
+    //class PresetData_PlayerShip_MaybeFireWeapon
+    //{
+    //    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+    //    {
+    //        foreach (var code in codes)
+    //        {
+    //            if (code.opcode == OpCodes.Ldc_R4 && (float)code.operand == 0.666667f)
+    //            {
+    //                yield return new CodeInstruction(OpCodes.Ldloc_S, 7);
+    //                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(PresetData_PlayerShip_MaybeFireWeapon), "GetEnergyUsage"));
+    //                continue;
+    //            }
+    //            yield return code;
+    //        }
+    //    }
+
+    //}
+
+    
+
+    //[HarmonyPatch(typeof(Projectile), "OnCollisionEnter")]
+    //class PresetData_Projectile_ProcessCollision
+    //{
+    //    static void Prefix(Projectile __instance, Collision collision)
+    //    {
+    //        var collider = collision.gameObject;
+    //        Debug.Log($"m_alive = {__instance.m_alive}, layer = {collider.layer}, bounce? = {collider.CompareTag("Bounce")}, shouldplaydamageeffect = {__instance.ShouldPlayDamageEffect(collider.layer)}");
+    //    }
+    //}
 }

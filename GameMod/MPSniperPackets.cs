@@ -66,7 +66,7 @@ namespace GameMod
         /// Replacement function for Server.IsActive() in MaybeFireWeapon and other places that need to deduct from the player's energy pool regardless if the function is called on client or server.
         /// </summary>
         /// <returns></returns>
-        static bool AlwaysUseEnergy()
+        public static bool AlwaysUseEnergy()
         {
             if (!enabled) return Server.IsActive();
 
@@ -86,7 +86,7 @@ namespace GameMod
         /// <param name="slot"></param>
         /// <param name="force_id"></param>
         /// <returns></returns>
-        static ParticleElement MaybePlayerFire(Player player, ProjPrefab type, Vector3 pos, Quaternion rot, float strength = 0, WeaponUnlock upgrade_lvl = WeaponUnlock.LEVEL_0, bool no_sound = false, int slot = -1, int force_id = -1)
+        public static ParticleElement MaybePlayerFire(Player player, ProjPrefab type, Vector3 pos, Quaternion rot, float strength = 0, WeaponUnlock upgrade_lvl = WeaponUnlock.LEVEL_0, bool no_sound = false, int slot = -1, int force_id = -1)
         {
             if (!enabled) return ProjectileManager.PlayerFire(player, type, pos, rot, strength, upgrade_lvl, no_sound, slot, force_id);
             if (!GameplayManager.IsMultiplayerActive) return ProjectileManager.PlayerFire(player, type, pos, rot, strength, upgrade_lvl, no_sound, slot, force_id);
@@ -826,31 +826,31 @@ namespace GameMod
         }
     }
 
-    /// <summary>
-    /// In base Overload, energy is only deducted from the player's total on the server, and then it synchronizes that energy amount to the client.  Instead, we are going to keep track of the energy on the client and sync it to the server.  Since everywhere where energy is used in this function check Server.IsActive, we instead redirect to our own function MPSniperPackets.AlwaysUseEnergy, which always returns true, and thus always deducts energy regardless as to whether it's on the server or the client.
-    /// 
-    /// In base Overload, the server simulates the position/rotation of each player's weapon fire.  Instead, we are going to let players decide the position/rotation of the weapon fire.  We replace the call to ProjectileManager.PlayerFire with our own call to MPSniperPackets.MaybePlayerFire that ensures that this simulation does not happen server side, and that when the client fires a weapon that it is synced to the server as a sniper packet.
-    /// </summary>
-    [HarmonyPatch(typeof(PlayerShip), "MaybeFireWeapon")]
-    class MPSniperPacketsMaybeFireWeapon
-    {
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
-        {
-            foreach (var code in codes)
-            {
-                if (code.opcode == OpCodes.Call && ((MethodInfo)code.operand).Name == "IsActive")
-                {
-                    code.operand = AccessTools.Method(typeof(MPSniperPackets), "AlwaysUseEnergy");
-                }
-                else if (code.opcode == OpCodes.Call && ((MethodInfo)code.operand).Name == "PlayerFire")
-                {
-                    code.operand = AccessTools.Method(typeof(MPSniperPackets), "MaybePlayerFire");
-                }
+    ///// <summary>
+    ///// In base Overload, energy is only deducted from the player's total on the server, and then it synchronizes that energy amount to the client.  Instead, we are going to keep track of the energy on the client and sync it to the server.  Since everywhere where energy is used in this function check Server.IsActive, we instead redirect to our own function MPSniperPackets.AlwaysUseEnergy, which always returns true, and thus always deducts energy regardless as to whether it's on the server or the client.
+    ///// 
+    ///// In base Overload, the server simulates the position/rotation of each player's weapon fire.  Instead, we are going to let players decide the position/rotation of the weapon fire.  We replace the call to ProjectileManager.PlayerFire with our own call to MPSniperPackets.MaybePlayerFire that ensures that this simulation does not happen server side, and that when the client fires a weapon that it is synced to the server as a sniper packet.
+    ///// </summary>
+    //[HarmonyPatch(typeof(PlayerShip), "MaybeFireWeapon")]
+    //class MPSniperPacketsMaybeFireWeapon
+    //{
+    //    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+    //    {
+    //        foreach (var code in codes)
+    //        {
+    //            if (code.opcode == OpCodes.Call && ((MethodInfo)code.operand).Name == "IsActive")
+    //            {
+    //                code.operand = AccessTools.Method(typeof(MPSniperPackets), "AlwaysUseEnergy");
+    //            }
+    //            else if (code.opcode == OpCodes.Call && ((MethodInfo)code.operand).Name == "PlayerFire")
+    //            {
+    //                code.operand = AccessTools.Method(typeof(MPSniperPackets), "MaybePlayerFire");
+    //            }
 
-                yield return code;
-            }
-        }
-    }
+    //            yield return code;
+    //        }
+    //    }
+    //}
 
     /// <summary>
     /// We want the client to control what weapon they are using, so if this function is called by the server, we ignore the call.
@@ -1310,27 +1310,27 @@ namespace GameMod
         }
     }
 
-    /// <summary>
-    /// Similar to MaybeFireWeapon, we redirect Projectile.PlayerFire to MPSniperPackets.MaybePlayerFire in order for the client to control where the missile gets fired from.
-    /// 
-    /// We also want to try to switch to a new secondary on the client no matter what at the end of MaybeFireMissile.
-    /// </summary>
-    [HarmonyPatch(typeof(PlayerShip), "MaybeFireMissile")]
-    class MPSniperPacketsMaybeFireMissile
-    {
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
-        {
-            foreach (var code in codes)
-            {
-                if (code.opcode == OpCodes.Call && ((MethodInfo)code.operand).Name == "PlayerFire")
-                {
-                    code.operand = AccessTools.Method(typeof(MPSniperPackets), "MaybePlayerFire");
-                }
+    ///// <summary>
+    ///// Similar to MaybeFireWeapon, we redirect Projectile.PlayerFire to MPSniperPackets.MaybePlayerFire in order for the client to control where the missile gets fired from.
+    ///// 
+    ///// We also want to try to switch to a new secondary on the client no matter what at the end of MaybeFireMissile.
+    ///// </summary>
+    //[HarmonyPatch(typeof(PlayerShip), "MaybeFireMissile")]
+    //class MPSniperPacketsMaybeFireMissile
+    //{
+    //    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+    //    {
+    //        foreach (var code in codes)
+    //        {
+    //            if (code.opcode == OpCodes.Call && ((MethodInfo)code.operand).Name == "PlayerFire")
+    //            {
+    //                code.operand = AccessTools.Method(typeof(MPSniperPackets), "MaybePlayerFire");
+    //            }
 
-                yield return code;
-            }
-        }
-    }
+    //            yield return code;
+    //        }
+    //    }
+    //}
 
     /// <summary>
     /// We want the client to control what missile they are using, so if this function is called by the server, we ignore the call.

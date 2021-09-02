@@ -235,31 +235,31 @@ namespace GameMod
         }
     }
 
-    // the server might fire more missles than the client, correct state when the missiles run out on the server
-    [HarmonyPatch(typeof(PlayerShip), "MaybeFireMissile")]
-    class CreeperSyncRunOutSync
-    {
-        static void Postfix(float ___m_refire_missile_time, Player ___c_player)
-        {
-            // When sniper packets are enabled, this code is not needed as missile firing synchronization happens automatically.
-            if (MPSniperPackets.enabled)
-            {
-                return;
-            }
+    //// the server might fire more missles than the client, correct state when the missiles run out on the server
+    //[HarmonyPatch(typeof(PlayerShip), "MaybeFireMissile")]
+    //class CreeperSyncRunOutSync
+    //{
+    //    static void Postfix(float ___m_refire_missile_time, Player ___c_player)
+    //    {
+    //        // When sniper packets are enabled, this code is not needed as missile firing synchronization happens automatically.
+    //        if (MPSniperPackets.enabled)
+    //        {
+    //            return;
+    //        }
 
-            if (!GameplayManager.IsMultiplayerActive ||
-                !Server.IsActive() ||
-                !(___m_refire_missile_time == 1f &&
-                ___c_player.m_old_missile_type != MissileType.NUM &&
-                ___c_player.m_missile_ammo[(int)___c_player.m_old_missile_type] == 0)) // just switched?
-                return;
+    //        if (!GameplayManager.IsMultiplayerActive ||
+    //            !Server.IsActive() ||
+    //            !(___m_refire_missile_time == 1f &&
+    //            ___c_player.m_old_missile_type != MissileType.NUM &&
+    //            ___c_player.m_missile_ammo[(int)___c_player.m_old_missile_type] == 0)) // just switched?
+    //            return;
 
-            // make sure ammo is also zero on the client
-            ___c_player.CallRpcSetMissileAmmo((int)___c_player.m_old_missile_type, 0);
+    //        // make sure ammo is also zero on the client
+    //        ___c_player.CallRpcSetMissileAmmo((int)___c_player.m_old_missile_type, 0);
 
-            // workaround for not updating missle name in hud
-            ___c_player.CallRpcSetMissileType(___c_player.m_missile_type);
-            ___c_player.CallTargetUpdateCurrentMissileName(___c_player.connectionToClient);
-        }
-    }
+    //        // workaround for not updating missle name in hud
+    //        ___c_player.CallRpcSetMissileType(___c_player.m_missile_type);
+    //        ___c_player.CallTargetUpdateCurrentMissileName(___c_player.connectionToClient);
+    //    }
+    //}
 }

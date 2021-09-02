@@ -117,38 +117,6 @@ namespace GameMod
     }
 
     /// <summary>
-    /// Remove IsMultiplayerActive override in PlayerShip::MaybeFireWeapon which assumes if multiplayer, force all projectiles to level2a quads
-    /// </summary>
-    [HarmonyPatch(typeof(PlayerShip), "MaybeFireWeapon")]
-    class MPClassic_PlayerShip_MaybeFireWeapon
-    {
-        static bool MatchEnabledHelper()
-        {
-            return GameplayManager.IsMultiplayer && !MPClassic.matchEnabled;
-        }
-
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
-        {
-            int state = 0;
-            foreach (var code in codes)
-            {
-                if (code.opcode == OpCodes.Ldsfld && code.operand == AccessTools.Field(typeof(GameplayManager), "IsMultiplayerActive"))
-                {
-                    state++;
-                    // Skip IsMultiplayerActive check for impulse
-                    if (state == 2)
-                    {
-                        code.opcode = OpCodes.Call;
-                        code.operand = AccessTools.Method(typeof(MPClassic_PlayerShip_MaybeFireWeapon), "MatchEnabledHelper");
-                    }
-                }
-
-                yield return code;
-            }
-        }
-    }
-
-    /// <summary>
     /// Force loadouts to Imp/Falc
     /// </summary>
     [HarmonyPatch(typeof(MenuManager), "BuildPrivateMatchData")]
