@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
@@ -15,6 +16,17 @@ namespace GameMod {
             if (!Debugging.Enabled) {
                 return;
             }
+            
+            MethodInfo _GetRespawnPointCandidates = AccessTools.Method(typeof(NetworkSpawnPoints), "GetRespawnPointCandidates");
+            List<int> respawnPointCandidates = (List<int>)_GetRespawnPointCandidates.Invoke(null, new object[] { GameManager.m_local_player.m_mp_team });
+            LevelData.SpawnPoint sp = GameManager.m_level_data.m_player_spawn_points[respawnPointCandidates[BestSpawn]];
+            int curSeg = GameManager.m_player_ship.GetMovingObject().CurrentSegmentIndex;
+
+            int[] array = new int[Pathfinding.Segments.Length];
+            int path_length;
+            float result;
+            Pathfinding.FindShortestPath(curSeg, sp.m_current_segment, -1, 9999f, array, out path_length, out result, false);
+            List<int> segPath = array.Where(x => x > 0).ToList();
 
             Vector3 shipPos = GameManager.m_player_ship.c_transform_position;
             Vector3 forward = GameManager.m_player_ship.c_camera_transform.forward;
@@ -31,11 +43,11 @@ namespace GameMod {
                 vector.x /= dist;
                 vector.y /= dist;
                 vector.z /= dist;
-                if ((bool)_UIManager_VisibilityRaycast_Method.Invoke(null, new object[] { shipPos, vector, dist })) {
+                if (segPath.Contains(i) || (bool)_UIManager_VisibilityRaycast_Method.Invoke(null, new object[] { shipPos, vector, dist })) {
                     int quad_index = UIManager.m_quad_index;
                     Vector2 offset = Vector2.zero;
                     offset.y = -80f / dist;
-                    UIManager.DrawStringAlignCenter($"{i}", offset, 1f, UIManager.m_col_white2, -1f);
+                    UIManager.DrawStringAlignCenter($"{i}", offset, 1f, segPath.Contains(i) ? UIManager.m_col_blue : UIManager.m_col_white2, -1f);
                     WorldText.PreviousQuadsTransformText(segCenter, shipQuat, dist, quad_index);
                 }
             }
