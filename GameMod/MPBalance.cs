@@ -16,7 +16,7 @@ namespace GameMod
         public static bool ShowCycloneTrails = true;
         public static float CycloneTrailOpacity = 1f;
         public static readonly MenuState msBalanceOptions = (MenuState)101;
-        public static readonly UIElementType uiBalanceOptions = (UIElementType)93;
+        public static readonly UIElementType uiBalanceOptions = (UIElementType)94;
         public static bool UseProjdataCrusherTrail = true;
 
         public static float GetThunderboltChargeTimeMultiplierFloat()
@@ -472,6 +472,40 @@ namespace GameMod
             }
         }
 
+        private static void ModifyTB(Projectile proj)
+        {
+            //if (proj.m_type == ProjPrefab.proj_thunderbolt)
+            //{
+            //    proj.m_trail_particle = FXWeaponEffect.none;
+            //    proj.m_trail_renderer = FXTrailRenderer.none;
+            //    var comps = proj.c_go.GetComponentsInChildren<Component>();
+            //    foreach (var comp in comps)
+            //    {
+            //        uConsole.Log($"{comp.name} [{comp.GetType()}]");
+            //        if (comp.GetType() == typeof(MeshRenderer))
+            //        {
+            //            var mr = (MeshRenderer)comp;
+            //            mr.sharedMaterial = null;
+            //        }
+            //    }
+
+            //    foreach (var mr in proj.c_go.GetComponentsInChildren<MeshRenderer>())
+            //    {
+            //        mr.sharedMaterial = null;
+            //    }
+
+            //    foreach (var mf in proj.c_go.GetComponentsInChildren<MeshFilter>())
+            //    {
+            //        mf.sharedMesh = null;
+            //    }
+
+            //    foreach (var cc in proj.c_go.GetComponentsInChildren<CapsuleCollider>())
+            //    {
+            //        //cc.sharedMaterial = lastMat;
+            //    }
+            //}            
+        }
+
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
         {
             int state = 0;
@@ -492,6 +526,14 @@ namespace GameMod
                     {
                         continue;
                     }
+                }
+
+                if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(Projectile), "InitData"))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance_Projectile_Fire), "ModifyTB"));
+                    continue;
                 }
                 yield return code;
             }
