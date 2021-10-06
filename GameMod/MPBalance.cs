@@ -16,8 +16,9 @@ namespace GameMod
         public static bool ShowCycloneTrails = true;
         public static float CycloneTrailOpacity = 1f;
         public static readonly MenuState msBalanceOptions = (MenuState)101;
-        public static readonly UIElementType uiBalanceOptions = (UIElementType)94;
+        public static readonly UIElementType uiBalanceOptions = (UIElementType)93;
         public static bool UseProjdataCrusherTrail = true;
+        public static int ThunderboltSelfDamageSoundEffect = (int)SoundEffect.imp_force_field1;
 
         public static float GetThunderboltChargeTimeMultiplierFloat()
         {
@@ -122,6 +123,8 @@ namespace GameMod
                     position.y += 64f;
                     uie.SelectAndDrawCheckboxItem("USE SERVER CRUSHER TRAIL SETTING", position, 3, MPBalance.UseProjdataCrusherTrail);
                     position.y += 64f;
+                    uie.SelectAndDrawStringOptionItem("TB SELF-DAMAGE SOUND", position, 4, ((SoundEffect)MPBalance.ThunderboltSelfDamageSoundEffect).ToString(), "", 1.5f);
+                    position.y += 64f;
 
                     position.y = UIManager.UI_BOTTOM - 100f;
                     uie.DrawMenuSeparator(position);
@@ -173,6 +176,10 @@ namespace GameMod
                                 break;
                             case 3:
                                 MPBalance.UseProjdataCrusherTrail = !MPBalance.UseProjdataCrusherTrail;
+                                MenuManager.PlayCycleSound(1f, (float)UIManager.m_select_dir);
+                                break;
+                            case 4:
+                                MPBalance.ThunderboltSelfDamageSoundEffect = (MPBalance.ThunderboltSelfDamageSoundEffect + 486 + UIManager.m_select_dir) % 486;
                                 MenuManager.PlayCycleSound(1f, (float)UIManager.m_select_dir);
                                 break;
                             default:
@@ -275,12 +282,23 @@ namespace GameMod
     class MPBalance_PlayerShip_ThunderCharge
     {
         static float chargeStart;
+        public static int m_charge_loop_index = -1;
 
         static void Prefix(PlayerShip __instance)
         {
             if (__instance.m_refire_time <= 0f && __instance.m_thunder_power == 0f)
             {
                 chargeStart = NetworkMatch.m_match_elapsed_seconds;
+                m_charge_loop_index = -1;
+            }
+        }
+
+        // Audio cue once charged
+        static void Postfix(PlayerShip __instance)
+        {
+            if (__instance.isLocalPlayer && __instance.m_thunder_power >= 2f && m_charge_loop_index == -1)
+            {
+                m_charge_loop_index = GameManager.m_audio.PlayCue2DLoop(MPBalance.ThunderboltSelfDamageSoundEffect, 1f, 0f, 0f, true);
             }
         }
 
@@ -338,6 +356,12 @@ namespace GameMod
             return adjusted;
         }
 
+        private static void UpdateThunderCharge()
+        {
+            GameManager.m_audio.StopSound(MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index);
+            MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index = -1;
+        }
+
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
         {
             int state = 0;
@@ -366,6 +390,13 @@ namespace GameMod
 
                 if (state == 3 && code.opcode == OpCodes.Ldsfld && code.operand == AccessTools.Field(typeof(GameplayManager), "IsMultiplayerActive"))
                     state++;
+
+                if (code.opcode == OpCodes.Stfld && code.operand == AccessTools.Field(typeof(PlayerShip), "m_thunder_sound_timer"))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance_PlayerShip_MaybeFireWeapon), "UpdateThunderCharge"));
+                    continue;
+                }
 
                 yield return code;
             }
@@ -472,40 +503,6 @@ namespace GameMod
             }
         }
 
-        private static void ModifyTB(Projectile proj)
-        {
-            //if (proj.m_type == ProjPrefab.proj_thunderbolt)
-            //{
-            //    proj.m_trail_particle = FXWeaponEffect.none;
-            //    proj.m_trail_renderer = FXTrailRenderer.none;
-            //    var comps = proj.c_go.GetComponentsInChildren<Component>();
-            //    foreach (var comp in comps)
-            //    {
-            //        uConsole.Log($"{comp.name} [{comp.GetType()}]");
-            //        if (comp.GetType() == typeof(MeshRenderer))
-            //        {
-            //            var mr = (MeshRenderer)comp;
-            //            mr.sharedMaterial = null;
-            //        }
-            //    }
-
-            //    foreach (var mr in proj.c_go.GetComponentsInChildren<MeshRenderer>())
-            //    {
-            //        mr.sharedMaterial = null;
-            //    }
-
-            //    foreach (var mf in proj.c_go.GetComponentsInChildren<MeshFilter>())
-            //    {
-            //        mf.sharedMesh = null;
-            //    }
-
-            //    foreach (var cc in proj.c_go.GetComponentsInChildren<CapsuleCollider>())
-            //    {
-            //        //cc.sharedMaterial = lastMat;
-            //    }
-            //}            
-        }
-
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
         {
             int state = 0;
@@ -526,14 +523,6 @@ namespace GameMod
                     {
                         continue;
                     }
-                }
-
-                if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(Projectile), "InitData"))
-                {
-                    yield return code;
-                    yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance_Projectile_Fire), "ModifyTB"));
-                    continue;
                 }
                 yield return code;
             }
