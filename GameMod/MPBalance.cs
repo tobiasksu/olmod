@@ -16,9 +16,9 @@ namespace GameMod
         public static bool ShowCycloneTrails = true;
         public static float CycloneTrailOpacity = 1f;
         public static readonly MenuState msBalanceOptions = (MenuState)101;
-        public static readonly UIElementType uiBalanceOptions = (UIElementType)93;
+        public static readonly UIElementType uiBalanceOptions = (UIElementType)94;
         public static bool UseProjdataCrusherTrail = true;
-        public static int ThunderboltSelfDamageSoundEffect = (int)SoundEffect.imp_force_field1;
+        public static int ThunderboltSelfDamageSoundEffect = (int)SoundEffect.hud_notify_ab_overheat;
 
         public static float GetThunderboltChargeTimeMultiplierFloat()
         {
@@ -113,7 +113,7 @@ namespace GameMod
             switch (menu_micro_state)
             {
                 default:
-                    uie.DrawHeaderMedium(Vector2.up * (UIManager.UI_TOP + 30f), Loc.LS("MOD OPTIONS - SEPT 26 2021 06:04PM BUILD"), 265f);
+                    uie.DrawHeaderMedium(Vector2.up * (UIManager.UI_TOP + 30f), Loc.LS("MOD OPTIONS - OCT 10 2021 09:01PM BUILD"), 265f);
                     position.y += 20f;
                     uie.DrawMenuSeparator(position);
                     position.y += 64f;
@@ -123,8 +123,8 @@ namespace GameMod
                     position.y += 64f;
                     uie.SelectAndDrawCheckboxItem("USE SERVER CRUSHER TRAIL SETTING", position, 3, MPBalance.UseProjdataCrusherTrail);
                     position.y += 64f;
-                    uie.SelectAndDrawStringOptionItem("TB SELF-DAMAGE SOUND", position, 4, ((SoundEffect)MPBalance.ThunderboltSelfDamageSoundEffect).ToString(), "", 1.5f);
-                    position.y += 64f;
+                    //uie.SelectAndDrawStringOptionItem("TB SELF-DAMAGE SOUND", position, 4, ((SoundEffect)MPBalance.ThunderboltSelfDamageSoundEffect).ToString(), "", 1.5f);
+                    //position.y += 64f;
 
                     position.y = UIManager.UI_BOTTOM - 100f;
                     uie.DrawMenuSeparator(position);
@@ -302,6 +302,13 @@ namespace GameMod
             }
         }
 
+        // Override self-damage ramping
+        static float GetSelfChargeDamage(float num, PlayerShip playerShip)
+        {
+            //Debug.Log($"GetSelfChargeDamage: {MPBalance.GetThunderboltSelfDamageMultiplierFloat() * num}");
+            return MPBalance.GetThunderboltSelfDamageMultiplierFloat() * num;
+        }
+
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
         {
             int state = 0;
@@ -330,6 +337,17 @@ namespace GameMod
                     yield return code;
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance), "GetThunderboltChargeTimeMultiplierFloat"));
                     yield return new CodeInstruction(OpCodes.Div);
+                    continue;
+                }
+
+                if (code.opcode == OpCodes.Stfld && code.operand == AccessTools.Field(typeof(DamageInfo), "damage"))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Ldloca_S, 2);
+                    yield return new CodeInstruction(OpCodes.Ldloc_0);
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance_PlayerShip_ThunderCharge), "GetSelfChargeDamage"));
+                    yield return new CodeInstruction(OpCodes.Stfld, AccessTools.Field(typeof(DamageInfo), "damage"));
                     continue;
                 }
 
@@ -362,6 +380,12 @@ namespace GameMod
             MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index = -1;
         }
 
+        private static float GetTBRefireTime()
+        {
+            ProjectileExt component = ProjectileManager.proj_prefabs[27].GetComponent<ProjectileExt>();
+            return component.olmod_m_tb_refire_time;
+        }
+
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
         {
             int state = 0;
@@ -390,6 +414,12 @@ namespace GameMod
 
                 if (state == 3 && code.opcode == OpCodes.Ldsfld && code.operand == AccessTools.Field(typeof(GameplayManager), "IsMultiplayerActive"))
                     state++;
+
+                if (state == 4 && code.opcode == OpCodes.Ldc_R4 && (float)code.operand == 0.5f)
+                {
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance_PlayerShip_MaybeFireWeapon), "GetTBRefireTime"));
+                    continue;
+                }
 
                 if (code.opcode == OpCodes.Stfld && code.operand == AccessTools.Field(typeof(PlayerShip), "m_thunder_sound_timer"))
                 {
@@ -425,6 +455,27 @@ namespace GameMod
                     continue;
                 }
                 yield return code;
+            }
+        }
+
+        // Clear out previously defined ProjectileExt values (e.g. new match on custom projdata, then new match on stock projdata wouldn't clear fields from 1st match)
+        static void Prefix(GameObject[] prefabs)
+        {
+            ProjectileExt defaultVals = new ProjectileExt();
+            foreach (var prefab in prefabs)
+            {
+                if (prefab == null)
+                    continue;
+                
+                var projExt = prefab.GetComponent<ProjectileExt>();
+                if (projExt != null)
+                {
+                    var fieldNames = AccessTools.GetFieldNames(projExt);
+                    foreach (var fn in fieldNames.Where(x => x.StartsWith("olmod")))
+                    {
+                        AccessTools.Field(typeof(ProjectileExt), fn).SetValue(projExt, AccessTools.Field(typeof(ProjectileExt), fn).GetValue(defaultVals));
+                    }
+                }
             }
         }
 
@@ -503,6 +554,26 @@ namespace GameMod
             }
         }
 
+        private static float GetTBDamageMultiplierMP(Projectile proj)
+        {
+            var comp = ProjectileManager.proj_prefabs[27].GetComponent<ProjectileExt>();
+            if (GameplayManager.IsDedicatedServer())
+            {
+                //Debug.Log($"GetTBDamageMultiplierMP: {comp.olmod_m_tb_damage_multiplier_mp}");
+            }
+            return comp.olmod_m_tb_damage_multiplier_mp;
+        }
+
+        private static void DebugTB(Projectile proj)
+        {
+            if (GameplayManager.IsDedicatedServer())
+            {
+                var m_strength = (float)AccessTools.Field(typeof(Projectile), "m_strength").GetValue(proj);
+                var m_damage = (float)AccessTools.Field(typeof(Projectile), "m_damage").GetValue(proj);
+                Debug.Log($"m_strength: {m_strength}, m_damage: {m_damage}");
+            }
+        }
+
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
         {
             int state = 0;
@@ -524,6 +595,24 @@ namespace GameMod
                         continue;
                     }
                 }
+
+                // this.m_damage *= 1f + this.m_strength * ((!GameplayManager.IsMultiplayerActive) ? 2.5f : 1.75f);
+                if (code.opcode == OpCodes.Ldc_R4 && (float)code.operand == 1.75f)
+                {
+                    yield return new CodeInstruction(OpCodes.Ldarg_0) { labels = code.labels };
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance_Projectile_Fire), "GetTBDamageMultiplierMP"));
+                    continue;
+                }
+
+                // this.m_trail_post_lifetime = 1f + this.m_strength * 2f;
+                //if (code.opcode == OpCodes.Stfld && code.operand == AccessTools.Field(typeof(Projectile), "m_trail_post_lifetime"))
+                //{
+                //    yield return code;
+                //    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                //    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPBalance_Projectile_Fire), "DebugTB"));
+                //    continue;
+                //}
+
                 yield return code;
             }
         }
@@ -535,5 +624,7 @@ namespace GameMod
         public float olmod_m_muzzle_right_adjust = 0f;
         public float olmod_m_tb_chargetime_multiplier = 1f;
         public float olmod_m_tb_overchargedamage_multiplier = 1f;
+        public float olmod_m_tb_damage_multiplier_mp = 1.75f;
+        public float olmod_m_tb_refire_time = 0.5f;
     }
 }
