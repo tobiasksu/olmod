@@ -18,7 +18,16 @@ namespace GameMod
         public static readonly MenuState msBalanceOptions = (MenuState)101;
         public static readonly UIElementType uiBalanceOptions = (UIElementType)94;
         public static bool UseProjdataCrusherTrail = true;
-        public static int ThunderboltSelfDamageSoundEffect = (int)SoundEffect.hud_notify_ab_overheat;
+        //public static int ThunderboltSelfDamageSoundEffect = (int)SoundEffect.hud_notify_ab_overheat;
+
+        public static void StopThunderboltSelfDamageLoop()
+        {
+            if (MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index != -1)
+            {
+                GameManager.m_audio.StopSound(MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index);
+                MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index = -1;
+            }
+        }
 
         public static float GetThunderboltChargeTimeMultiplierFloat()
         {
@@ -178,10 +187,10 @@ namespace GameMod
                                 MPBalance.UseProjdataCrusherTrail = !MPBalance.UseProjdataCrusherTrail;
                                 MenuManager.PlayCycleSound(1f, (float)UIManager.m_select_dir);
                                 break;
-                            case 4:
-                                MPBalance.ThunderboltSelfDamageSoundEffect = (MPBalance.ThunderboltSelfDamageSoundEffect + 486 + UIManager.m_select_dir) % 486;
-                                MenuManager.PlayCycleSound(1f, (float)UIManager.m_select_dir);
-                                break;
+                            //case 4:
+                            //    MPBalance.ThunderboltSelfDamageSoundEffect = (MPBalance.ThunderboltSelfDamageSoundEffect + 486 + UIManager.m_select_dir) % 486;
+                            //    MenuManager.PlayCycleSound(1f, (float)UIManager.m_select_dir);
+                            //    break;
                             default:
                                 if (menu_selection == 100)
                                 {
@@ -289,7 +298,7 @@ namespace GameMod
             if (__instance.m_refire_time <= 0f && __instance.m_thunder_power == 0f)
             {
                 chargeStart = NetworkMatch.m_match_elapsed_seconds;
-                m_charge_loop_index = -1;
+                MPBalance.StopThunderboltSelfDamageLoop();
             }
         }
 
@@ -298,7 +307,8 @@ namespace GameMod
         {
             if (__instance.isLocalPlayer && __instance.m_thunder_power >= 2f && m_charge_loop_index == -1)
             {
-                m_charge_loop_index = GameManager.m_audio.PlayCue2DLoop(MPBalance.ThunderboltSelfDamageSoundEffect, 1f, 0f, 0f, true);
+                ProjectileExt component = ProjectileManager.proj_prefabs[27].GetComponent<ProjectileExt>();
+                m_charge_loop_index = GameManager.m_audio.PlayCue2DLoop((int)component.olmod_m_tb_overchargedamage_sound, 1f, 0f, 0f, true);
             }
         }
 
@@ -376,8 +386,7 @@ namespace GameMod
 
         private static void UpdateThunderCharge()
         {
-            GameManager.m_audio.StopSound(MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index);
-            MPBalance_PlayerShip_ThunderCharge.m_charge_loop_index = -1;
+            MPBalance.StopThunderboltSelfDamageLoop();
         }
 
         private static float GetTBRefireTime()
@@ -429,6 +438,36 @@ namespace GameMod
                 }
 
                 yield return code;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerShip), "OnDestroy")]
+    class MPBalance_PlayerShip_OnDestroy
+    {
+        static void Postfix()
+        {
+            MPBalance.StopThunderboltSelfDamageLoop();
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerShip), "OnDisable")]
+    class MPBalance_PlayerShip_OnDisable
+    {
+        static void Postfix()
+        {
+            MPBalance.StopThunderboltSelfDamageLoop();
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerShip), "Update")]
+    class MPBalance_PlayerShip_Update
+    {
+        static void Postfix(PlayerShip __instance)
+        {
+            if ((__instance.m_boosting || __instance.m_dead || __instance.m_dying) && GameplayManager.IsMultiplayerActive && __instance.isLocalPlayer)
+            {
+                MPBalance.StopThunderboltSelfDamageLoop();
             }
         }
     }
@@ -626,5 +665,6 @@ namespace GameMod
         public float olmod_m_tb_overchargedamage_multiplier = 1f;
         public float olmod_m_tb_damage_multiplier_mp = 1.75f;
         public float olmod_m_tb_refire_time = 0.5f;
+        public SoundEffect olmod_m_tb_overchargedamage_sound = SoundEffect.hud_notify_ab_overheat;
     }
 }
