@@ -11,7 +11,8 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Networking.NetworkSystem;
 
-namespace GameMod {
+namespace GameMod
+{
     class MPTweaks
     {
         public const int NET_VERSION = 1;
@@ -86,8 +87,8 @@ namespace GameMod {
             if (key == "nocompress.reliable_timestamps" && bool.TryParse(value, out bool valTimestamps))
             {
                 //Debug.LogFormat("MPTweaks: server sends reliable timestamps: {0}",(valTimestamps)?1:0);
-                var oldValue = (MPNoPositionCompression.NewSnapshotVersion == MPNoPositionCompression.SnapshotVersion.VELOCITY_TIMESTAMP)?Boolean.TrueString:Boolean.FalseString;
-                MPNoPositionCompression.NewSnapshotVersion = (valTimestamps)?MPNoPositionCompression.SnapshotVersion.VELOCITY_TIMESTAMP:MPNoPositionCompression.SnapshotVersion.VELOCITY;
+                var oldValue = (MPNoPositionCompression.NewSnapshotVersion == MPNoPositionCompression.SnapshotVersion.VELOCITY_TIMESTAMP) ? Boolean.TrueString : Boolean.FalseString;
+                MPNoPositionCompression.NewSnapshotVersion = (valTimestamps) ? MPNoPositionCompression.SnapshotVersion.VELOCITY_TIMESTAMP : MPNoPositionCompression.SnapshotVersion.VELOCITY;
                 return oldValue;
             }
             return null;
@@ -104,7 +105,7 @@ namespace GameMod {
                 oldSettings[x.Key] = ApplySetting(x.Key, x.Value);
             Debug.Log("MPTweaks.Apply " + (Overload.NetworkManager.IsServer() ? "server" : "conn " + NetworkMatch.m_my_lobby_id) + " settings " + settings.Join() + " oldsettings " + oldSettings.Join());
         }
- 
+
         public static void Send(int conn_id = -1)
         {
             //Debug.Log("MPTweaks.Send to " + conn_id + " settings " + settings.Join());
@@ -116,7 +117,7 @@ namespace GameMod {
                         conn.Send(MessageTypes.MsgMPTweaksSet, msg);
             }
             else if (ClientHasMod(conn_id))
-               NetworkServer.SendToClient(conn_id, MessageTypes.MsgMPTweaksSet, msg);
+                NetworkServer.SendToClient(conn_id, MessageTypes.MsgMPTweaksSet, msg);
         }
 
         public static ClientInfo ClientCapabilitiesSet(int connectionId, Dictionary<string, string> capabilities)
@@ -211,7 +212,8 @@ namespace GameMod {
             if (m_settings == null)
                 m_settings = new Dictionary<string, string>();
             m_settings.Clear();
-            for (int i = 0; i < count; i++) {
+            for (int i = 0; i < count; i++)
+            {
                 string key = reader.ReadString();
                 string value = reader.ReadString();
                 m_settings[key] = value;
@@ -286,11 +288,11 @@ namespace GameMod {
             caps.Add("ModVersion", OlmodVersion.FullVersionString);
             caps.Add("Modded", Core.GameMod.Modded ? "1" : "0");
             caps.Add("ModsLoaded", Core.GameMod.ModsLoaded);
-            caps.Add("SupportsTweaks", "deathreview,sniper,jip,nocompress_0_3_6");
+            caps.Add("SupportsTweaks", "changeteam,deathreview,sniper,jip,nocompress_0_3_6");
             caps.Add("ModPrivateData", "1");
             caps.Add("ClassicWeaponSpawns", "1");
             caps.Add("NetVersion", MPTweaks.NET_VERSION.ToString());
-            Client.GetClient().Send(MessageTypes.MsgClientCapabilities, new TweaksMessage { m_settings = caps } );
+            Client.GetClient().Send(MessageTypes.MsgClientCapabilities, new TweaksMessage { m_settings = caps });
         }
     }
 
@@ -326,25 +328,30 @@ namespace GameMod {
             var connId = msg.conn.connectionId;
             if (connId == 0) // ignore local connection
                 return;
-            if (!MPTweaks.ClientInfos.TryGetValue(connId, out var clientInfo)) {
+            if (!MPTweaks.ClientInfos.TryGetValue(connId, out var clientInfo))
+            {
                 clientInfo = MPTweaks.ClientCapabilitiesSet(connId, new Dictionary<string, string>());
             }
             Debug.Log("MPTweaks: conn " + connId + " OnLoadoutDataMessage clientInfo is now " + clientInfo.Capabilities.Join());
-            if (!MPTweaks.ClientHasMod(connId) && MPTweaks.MatchNeedsMod()) {
+            if (!MPTweaks.ClientHasMod(connId) && MPTweaks.MatchNeedsMod())
+            {
                 //LobbyChatMessage chatMsg = new LobbyChatMessage(connId, "SERVER", MpTeam.ANARCHY, "You need OLMOD to join this match", false);
                 //NetworkServer.SendToClient(connId, CustomMsgType.LobbyChatToClient, chatMsg);
                 NetworkServer.SendToClient(connId, 86, new StringMessage("This match requires OLMod to play."));
                 GameManager.m_gm.StartCoroutine(DisconnectCoroutine(connId));
             }
-            if ((NetworkMatch.GetMatchState() != MatchState.LOBBY && NetworkMatch.GetMatchState() != MatchState.LOBBY_LOAD_COUNTDOWN) && !ClientLoadoutValid(connId)) {
+            if ((NetworkMatch.GetMatchState() != MatchState.LOBBY && NetworkMatch.GetMatchState() != MatchState.LOBBY_LOAD_COUNTDOWN) && !ClientLoadoutValid(connId))
+            {
                 NetworkServer.SendToClient(connId, 86, new StringMessage("This match has disabled modifiers.  Please disable these modifiers and try again: " + MPModifiers.GetDisabledModifiers()));
                 GameManager.m_gm.StartCoroutine(DisconnectCoroutine(connId));
             }
-            if (!clientInfo.Capabilities.ContainsKey("ClassicWeaponSpawns") && (MPClassic.matchEnabled || MPModPrivateData.ClassicSpawnsEnabled)) {
+            if (!clientInfo.Capabilities.ContainsKey("ClassicWeaponSpawns") && (MPClassic.matchEnabled || MPModPrivateData.ClassicSpawnsEnabled))
+            {
                 NetworkServer.SendToClient(connId, 86, new StringMessage("This match has classic weapon spawns and requires OLMod 0.3.6 or greater."));
                 GameManager.m_gm.StartCoroutine(DisconnectCoroutine(connId));
             }
-            if (clientInfo.Capabilities.ContainsKey("ModPrivateData")) {
+            if (clientInfo.Capabilities.ContainsKey("ModPrivateData"))
+            {
                 MPModPrivateDataTransfer.SendTo(connId);
             }
         }
@@ -354,10 +361,14 @@ namespace GameMod {
     /// Doubles the time allotted to wait for a client to start the match.
     /// </summary>
     [HarmonyPatch(typeof(NetworkMatch), "CanLaunchCountdown")]
-    class MPTweaks_NetworkMatch_CanLaunchCountdown {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes) {
-            foreach (var code in codes) {
-                if (code.opcode == OpCodes.Ldc_R4) {
+    class MPTweaks_NetworkMatch_CanLaunchCountdown
+    {
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+        {
+            foreach (var code in codes)
+            {
+                if (code.opcode == OpCodes.Ldc_R4)
+                {
                     code.operand = 60f;
                 }
                 yield return code;

@@ -7,7 +7,8 @@ using HarmonyLib;
 using Overload;
 using UnityEngine;
 
-namespace GameMod {
+namespace GameMod
+{
     public static class Menus
     {
 
@@ -16,6 +17,7 @@ namespace GameMod {
         public static MenuState msAutoSelect = (MenuState)77;
         public static MenuState msAxisCurveEditor = (MenuState)78;
         public static MenuState msTeamColors = (MenuState)79;
+        public static MenuState msChangeTeam = (MenuState)80;
         //public static UIElementType uiServerBrowser = (UIElementType)89;
         public static UIElementType uiLagCompensation = (UIElementType)90;
         public static UIElementType uiAutoSelect = (UIElementType)91;
@@ -41,6 +43,7 @@ namespace GameMod {
         public static bool mms_team_color_default { get; set; } = true;
         public static int mms_team_color_self = 5;
         public static int mms_team_color_enemy = 6;
+        public static MpTeam? mms_team_selection { get; set; } = null;
 
         public static string GetMMSRearViewPIP()
         {
@@ -537,12 +540,15 @@ namespace GameMod {
             int state = 0;
             foreach (var code in codes)
             {
-                if (code.opcode == OpCodes.Ldc_R4) {
-                    if ((float)code.operand == 155f) {
+                if (code.opcode == OpCodes.Ldc_R4)
+                {
+                    if ((float)code.operand == 155f)
+                    {
                         code.operand = 300f;
                     }
 
-                    if ((float)code.operand == 62f) {
+                    if ((float)code.operand == 62f)
+                    {
                         code.operand = 56f;
                     }
                 }
@@ -733,7 +739,7 @@ namespace GameMod {
                                     Menus.mms_lag_compensation_ship_added_lag = (int)(UIElement.SliderPos * 50f);
                                     break;
                                 case 11:
-                                    Menus.mms_lag_compensation_collision_limit = (int)(UIElement.SliderPos * 100f+0.5f);
+                                    Menus.mms_lag_compensation_collision_limit = (int)(UIElement.SliderPos * 100f + 0.5f);
                                     break;
                                 case 100:
                                     MenuManager.PlaySelectSound(1f);
@@ -1125,8 +1131,10 @@ namespace GameMod {
 
     // Fix next/previous resolution buttons.
     [HarmonyPatch(typeof(MenuManager), "SelectNextResolution")]
-    class FixSelectNextResolution {
-        static bool Prefix() {
+    class FixSelectNextResolution
+    {
+        static bool Prefix()
+        {
             var resolutions = Screen.resolutions.Where(r => r.width >= 800 && r.height >= 540).Select(r => new Resolution { width = r.width, height = r.height }).Distinct().ToList();
 
             resolutions.Sort((a, b) => {
@@ -1135,16 +1143,23 @@ namespace GameMod {
 
             var index = resolutions.IndexOf(new Resolution { width = MenuManager.m_resolution_width, height = MenuManager.m_resolution_height });
 
-            if (index == -1) {
+            if (index == -1)
+            {
                 index = resolutions.Count() - 1;
-            } else if (UIManager.m_select_dir > 0) {
+            }
+            else if (UIManager.m_select_dir > 0)
+            {
                 index++;
-                if (index >= resolutions.Count()) {
+                if (index >= resolutions.Count())
+                {
                     index = 0;
                 }
-            } else {
+            }
+            else
+            {
                 index--;
-                if (index < 0) {
+                if (index < 0)
+                {
                     index = resolutions.Count() - 1;
                 }
             }
@@ -1153,6 +1168,105 @@ namespace GameMod {
             MenuManager.m_resolution_height = resolutions[index].height;
 
             return false;
+        }
+    }
+
+    // Patch in Change Team option in the Pause UI
+    [HarmonyPatch(typeof(UIElement), "DrawPauseMenu")]
+    class Menus_UIElement_DrawPauseMenu
+    {
+
+        // Only called in MP matches
+        static void DrawMpTeamSwitch(UIElement uie, ref Vector2 position)
+        {
+            if (!NetworkMatch.IsTeamMode(MPModPrivateData.MatchMode) || !MPModPrivateData.JIPEnabled)
+                return;
+
+            // Specifying colors gets a bit goofy when using relative us/enemy assignments
+            string selection;
+            if (MPTeams.NetworkMatchTeamCount > 2)
+            {
+                selection = MPTeams.TeamName(Menus.mms_team_selection ?? GameManager.m_local_player.m_mp_team);
+            }
+            else
+            {
+                selection = (Menus.mms_team_selection ?? GameManager.m_local_player.m_mp_team) == GameManager.m_local_player.m_mp_team ? "CURRENT" : "SWITCH";
+            }
+            uie.SelectAndDrawStringOptionItem("TEAM", position, 13, selection, "", 1f, false);
+
+            position.y += 62f;
+        }
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+        {
+            foreach (var code in codes)
+            {
+                if (code.opcode == OpCodes.Ldstr && (string)code.operand == "QUIT TO MENU")
+                {
+                    yield return new CodeInstruction(OpCodes.Ldloca_S, 0); // Vector2 position
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_UIElement_DrawPauseMenu), "DrawMpTeamSwitch"));
+                    yield return new CodeInstruction(OpCodes.Ldarg_0); // We stole 'this' to pass as first arg to DrawMpTeamSwitch, put back on stack
+                }
+
+                yield return code;
+            }
+        }
+    }
+
+    // Menu handler for Change Team option in pause menu
+    [HarmonyPatch(typeof(MenuManager), "PausedUpdate")]
+    class Menus_MenuManager_PausedUpdate
+    {
+        static void HandleMenuSelection()
+        {
+            if (UIManager.m_menu_selection == 13)
+            {
+                Menus.mms_team_selection = MPTeams.NextTeam(Menus.mms_team_selection ?? GameManager.m_local_player.m_mp_team);
+                //Debug.Log($"Called HandleMenuSelection with team: {MPTeams.TeamName(Menus.mms_team_selection ?? GameManager.m_local_player.m_mp_team)}");
+                MenuManager.PlaySelectSound(1f);
+            }
+        }
+
+        static void InitializeMenu()
+        {
+            Menus.mms_team_selection = null;
+        }
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+        {
+            foreach (var code in codes)
+            {
+                if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(PilotManager), "Save"))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_PausedUpdate), "InitializeMenu"));
+                    continue;
+                }
+
+                if (code.opcode == OpCodes.Ldsfld && code.operand == AccessTools.Field(typeof(UIManager), "m_menu_selection"))
+                {
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_PausedUpdate), "HandleMenuSelection")) { labels = code.labels };
+                    code.labels = null;
+                }
+
+                yield return code;
+            }
+        }
+    }
+
+    // On resume from MP Pause menu, check to see if the current team selection has changed and if so send it to the server
+    [HarmonyPatch(typeof(MenuManager), "ResumeFromPauseMenu")]
+    class Menus_MenuManager_ResumeFromPauseMenu
+    {
+        static void Postfix()
+        {
+            if (!GameplayManager.IsMultiplayer || !NetworkMatch.IsTeamMode(MPModPrivateData.MatchMode) || !MPModPrivateData.JIPEnabled)
+                return;
+
+            if (Menus.mms_team_selection.HasValue && Menus.mms_team_selection != GameManager.m_local_player.m_mp_team)
+            {
+                Client.GetClient().Send(MessageTypes.MsgChangeTeam, new MPTeams.ChangeTeamMessage { netId = GameManager.m_local_player.netId, newTeam = Menus.mms_team_selection.Value });
+            }
         }
     }
 }
