@@ -1285,6 +1285,8 @@ namespace GameMod
             {
                 var msg = rawMsg.ReadMessage<MPTeams.ChangeTeamMessage>();
                 var targetPlayer = Overload.NetworkManager.m_Players.FirstOrDefault(x => x.netId == msg.netId);
+
+                ServerStatLog.AddTeamChange(targetPlayer, msg.newTeam);
                 targetPlayer.Networkm_mp_team = msg.newTeam;
                 
                 // Also need to set the Lobby data as it gets used for things like tracker stats
