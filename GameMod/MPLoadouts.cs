@@ -2,6 +2,7 @@
 using Overload;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -36,6 +37,19 @@ namespace GameMod
             {
                 weapons = new List<WeaponType>();
                 missiles = new List<MissileType>();
+            }
+
+            public override string ToString()
+            {
+                return $"{this.loadoutType}: Primaries={string.Join(",", this.weapons.Select(x => x.ToString()).ToArray())}, Secondaries={string.Join(",", this.missiles.Select(x => x.ToString()).ToArray())}";
+            }
+
+            public Overload.LoadoutDataMessage ToLoadoutDataMessage(int lobby_id)
+            {
+                Overload.LoadoutDataMessage ldm = new Overload.LoadoutDataMessage();
+                ldm.lobby_id = lobby_id;
+                // FIXME
+                return ldm;
             }
         }
 
@@ -126,111 +140,138 @@ namespace GameMod
                 MPLoadouts.Loadouts[loadoutIndex].missiles[missileIndex] = (MissileType)((((int)MPLoadouts.Loadouts[loadoutIndex].missiles[missileIndex]) + 1) % (int)MissileType.NOVA);
         }
 
-    //    public static void SendPlayerLoadoutToServer()
-    //    {
-    //        if (Client.GetClient() == null)
-    //        {
-    //            Debug.LogErrorFormat("Null client in MPLoadouts.SendServerPlayerLoadout for player", new object[0]);
-    //            return;
-    //        }
+        public static void SendPlayerLoadoutToServer()
+        {
+            if (Client.GetClient() == null)
+            {
+                Debug.LogErrorFormat("Null client in MPLoadouts.SendServerPlayerLoadout for player", new object[0]);
+                return;
+            }
 
-    //        Debug.Log($"SendPlayerLoadoutToServer called for: {Player.Mp_loadout1}, {Player.Mp_loadout2}");
+            Debug.Log($"SendPlayerLoadoutToServer called for: {Player.Mp_loadout1}, {Player.Mp_loadout2}, MPLoadouts.Loadouts size: {MPLoadouts.Loadouts.Length}");
 
-    //        LoadoutDataMessage loadoutDataMessage = new LoadoutDataMessage();
-    //        loadoutDataMessage.lobby_id = NetworkMatch.m_my_lobby_id;
-    //        loadoutDataMessage.loadouts = new List<CustomLoadout> { MPLoadouts.Loadouts[Player.Mp_loadout1], MPLoadouts.Loadouts[Player.Mp_loadout2] };
-    //        Client.GetClient().Send(MessageTypes.MsgCustomLoadouts, loadoutDataMessage);
-    //    }
-    //}
+            LoadoutDataMessage loadoutDataMessage = new LoadoutDataMessage();
+            loadoutDataMessage.lobby_id = NetworkMatch.m_my_lobby_id;
+            loadoutDataMessage.loadouts = new List<CustomLoadout> { MPLoadouts.Loadouts[Player.Mp_loadout1], MPLoadouts.Loadouts[Player.Mp_loadout2] };
+            Client.GetClient().Send(MessageTypes.MsgCustomLoadouts, loadoutDataMessage);
+        }
+    }
 
-    //[HarmonyPatch(typeof(Client), "SendPlayerLoadoutToServer")]
-    //internal class MPLoadouts_Client_SendPlayerLoadoutToServer
-    //{
-    //    static void Postfix()
-    //    {
-    //        MPLoadouts.SendPlayerLoadoutToServer();
-    //    }
-    //}
+    [HarmonyPatch(typeof(Client), "SendPlayerLoadoutToServer")]
+    internal class MPLoadouts_Client_SendPlayerLoadoutToServer
+    {
+        static void Postfix()
+        {
+            MPLoadouts.SendPlayerLoadoutToServer();
+        }
+    }
 
-    //[HarmonyPatch(typeof(Server), "SendLoadoutDataToClients")]
-    //internal class MPLoadouts_Server_SendLoadoutDataToClients
-    //{
-    //    static void Postfix()
-    //    {
-    //        foreach (var kvp in MPLoadouts.NetworkLoadouts)
-    //        {
-    //            NetworkServer.SendToAll(MessageTypes.MsgCustomLoadouts, kvp.Value);
-    //        }
-    //    }
-    //}
+    [HarmonyPatch(typeof(Server), "SendLoadoutDataToClients")]
+    internal class MPLoadouts_Server_SendLoadoutDataToClients
+    {
+        static void Postfix()
+        {
+            foreach (var kvp in MPLoadouts.NetworkLoadouts)
+            {
+                NetworkServer.SendToAll(MessageTypes.MsgCustomLoadouts, kvp.Value);
+            }
+        }
+    }
 
 
-    //[HarmonyPatch(typeof(Server), "RegisterHandlers")]
-    //internal class MPLoadouts_Server_RegisterHandlers
-    //{
-    //    static void Postfix()
-    //    {
-    //        NetworkServer.RegisterHandler(MessageTypes.MsgCustomLoadouts, OnCustomLoadoutDataMessage);
-    //    }
+    [HarmonyPatch(typeof(Server), "RegisterHandlers")]
+    internal class MPLoadouts_Server_RegisterHandlers
+    {
+        static void Postfix()
+        {
+            NetworkServer.RegisterHandler(MessageTypes.MsgCustomLoadouts, OnCustomLoadoutDataMessage);
+        }
 
-    //    private static void OnCustomLoadoutDataMessage(NetworkMessage rawMsg)
-    //    {
-    //        var msg = rawMsg.ReadMessage<MPLoadouts.LoadoutDataMessage>();
-    //        if (!MPLoadouts.NetworkLoadouts.ContainsKey(msg.lobby_id))
-    //        {
-    //            MPLoadouts.NetworkLoadouts.Add(msg.lobby_id, msg);
-    //        }
-    //        else
-    //        {
-    //            MPLoadouts.NetworkLoadouts[msg.lobby_id] = msg;
-    //        }
-    //    }
-    //}
+        private static void OnCustomLoadoutDataMessage(NetworkMessage rawMsg)
+        {
+            var msg = rawMsg.ReadMessage<MPLoadouts.LoadoutDataMessage>();
+            if (!MPLoadouts.NetworkLoadouts.ContainsKey(msg.lobby_id))
+            {
+                Debug.Log($"Server OnCustomLoadoutDataMessage: Add");
+                foreach (var loadout in msg.loadouts)
+                {
+                    Debug.Log($"{loadout}");
+                }
+                MPLoadouts.NetworkLoadouts.Add(msg.lobby_id, msg);
+            }
+            else
+            {
+                Debug.Log($"Server OnCustomLoadoutDataMessage: Update");
+                foreach (var loadout in msg.loadouts)
+                {
+                    Debug.Log($"{loadout}");
+                }
+                MPLoadouts.NetworkLoadouts[msg.lobby_id] = msg;
+            }
+        }
+    }
 
-    //[HarmonyPatch(typeof(Client), "RegisterHandlers")]
-    //internal class MPLoadouts_Client_RegisterHandlers
-    //{
-    //    static void Postfix()
-    //    {
-    //        if (Client.GetClient() == null)
-    //            return;
+    [HarmonyPatch(typeof(Client), "RegisterHandlers")]
+    internal class MPLoadouts_Client_RegisterHandlers
+    {
+        static void Postfix()
+        {
+            if (Client.GetClient() == null)
+                return;
 
-    //        Client.GetClient().RegisterHandler(MessageTypes.MsgCustomLoadouts, OnCustomLoadoutDataMessage);
-    //    }
+            Client.GetClient().RegisterHandler(MessageTypes.MsgCustomLoadouts, OnCustomLoadoutDataMessage);
+        }
 
-    //    private static void OnCustomLoadoutDataMessage(NetworkMessage rawMsg)
-    //    {
-    //        var msg = rawMsg.ReadMessage<MPLoadouts.LoadoutDataMessage>();
-    //        if (!MPLoadouts.NetworkLoadouts.ContainsKey(msg.lobby_id))
-    //        {
-    //            MPLoadouts.NetworkLoadouts.Add(msg.lobby_id, msg);
-    //        }
-    //        else
-    //        {
-    //            MPLoadouts.NetworkLoadouts[msg.lobby_id] = msg;
-    //        }
-    //    }
-    //}
+        private static void OnCustomLoadoutDataMessage(NetworkMessage rawMsg)
+        {
+            var msg = rawMsg.ReadMessage<MPLoadouts.LoadoutDataMessage>();
+            if (!MPLoadouts.NetworkLoadouts.ContainsKey(msg.lobby_id))
+            {
+                Debug.Log($"Client OnCustomLoadoutDataMessage: Add");
+                foreach (var loadout in msg.loadouts)
+                {
+                    Debug.Log($"{loadout}");
+                }
+                MPLoadouts.NetworkLoadouts.Add(msg.lobby_id, msg);
+            }
+            else
+            {
+                Debug.Log($"Client OnCustomLoadoutDataMessage: Update");
+                foreach (var loadout in msg.loadouts)
+                {
+                    Debug.Log($"{loadout}");
+                }
+                MPLoadouts.NetworkLoadouts[msg.lobby_id] = msg;
+            }
+        }
+    }
 
-    //[HarmonyPatch(typeof(Client), "OnRespawnMsg")]
-    //internal class MPLoadouts_Client_OnRespawnMsg
-    //{
-    //    static void SetMultiplayerLoadout(int lobby_id)
-    //    {
-    //        Debug.Log($"SetMultiplayerLoadout for {lobby_id}");
-    //    }
+    [HarmonyPatch(typeof(Client), "OnRespawnMsg")]
+    internal class MPLoadouts_Client_OnRespawnMsg
+    {
+        static void SetMultiplayerLoadout(int lobby_id)
+        {
+            Debug.Log($"SetMultiplayerLoadout for {lobby_id}");
+            var msg = MPLoadouts.Loadouts[lobby_id].ToLoadoutDataMessage();
+            
+            if (NetworkMatch.m_player_loadout_data.ContainsKey(lobby_id))
+            {
+                NetworkMatch.m_player_loadout_data.Remove(lobby_id);
+            }
+            NetworkMatch.m_player_loadout_data.Add(lobby_id, msg);
+        }
 
-    //    static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
-    //    {
-    //        foreach (var code in codes)
-    //        {
-    //            if (code.opcode == OpCodes.Ldloc_2)
-    //            {
-    //                yield return new CodeInstruction(OpCodes.Ldloc_3); // int lobby_id
-    //                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPLoadouts_Client_OnRespawnMsg), "SetMultiplayerLoadout"));
-    //            }
-    //            yield return code;
-    //        }
-    //    }
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+        {
+            foreach (var code in codes)
+            {
+                if (code.opcode == OpCodes.Ldloc_2)
+                {
+                    yield return new CodeInstruction(OpCodes.Ldloc_3); // int lobby_id
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(MPLoadouts_Client_OnRespawnMsg), "SetMultiplayerLoadout"));
+                }
+                yield return code;
+            }
+        }
     }
 }
