@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>H:\SteamLibrary\steamapps\common\Overload\olmod-testing\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -128,6 +128,7 @@
     <Compile Include="MPClassic.cs" />
     <Compile Include="MPClientExtrapolation.cs" />
     <Compile Include="MPCloak.cs" />
+    <Compile Include="MPColliderFix.cs" />
     <Compile Include="MPColoredPlayerNames.cs" />
     <Compile Include="MPContinue.cs" />
     <Compile Include="MPCreeperSync.cs" />
