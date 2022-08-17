@@ -2,6 +2,7 @@
 using Overload;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -11,8 +12,7 @@ namespace GameMod
 {
     internal class MPColliderFix
     {
-        public static Vector3 m_hitbox = new Vector3(0.57f, 0.64f, 0.71f);
-        public static float m_hitbox_angle = -90f;
+        public static GameObject m_prefab;
     }
 
     [HarmonyPatch(typeof(PlayerShip), "Awake")]
@@ -22,20 +22,28 @@ namespace GameMod
         {
             if (__instance.c_mesh_collider.GetComponent<MeshCollider>() == null)
             {
+                // Restructure this to not reload the AB for every ship, OK for testing
+                var ab = AssetBundle.LoadFromFile(Path.Combine(GameMod.Config.OLModDir, @"olmod_assets\playershipmeshcollider"));
+                if (ab == null)
+                {
+                    Debug.Log($"Failed to load PlayershipMeshCollider AssetBundle!");
+                }
+
+                MPColliderFix.m_prefab = ab.LoadAsset<GameObject>("PlayershipCollider");
+                GameObject go = UnityEngine.Object.Instantiate(MPColliderFix.m_prefab);
+                ab.Unload(false);
+
                 var mat_no_friction = __instance.c_mesh_collider.sharedMaterial;
                 UnityEngine.Object.Destroy(__instance.c_mesh_collider);
                 __instance.c_mesh_collider = null;
                 __instance.c_mesh_collider_trans = null;
 
-                GameObject go = new GameObject("_ship_mesh_collider");
-                var newGO = UnityEngine.Object.Instantiate(go, Vector3.zero, Quaternion.identity);
-                newGO.layer = 16;
-                var coll = newGO.AddComponent<MeshCollider>();
+                go.layer = 16;
+                var coll = go.AddComponent<MeshCollider>();
                 coll.sharedMaterial = mat_no_friction;
-                coll.sharedMesh = __instance.c_automap_go.GetComponentInChildren<MeshFilter>().mesh;
+                coll.sharedMesh = go.GetComponentInChildren<MeshFilter>().mesh;
                 coll.transform.parent = null;
-                coll.transform.localScale = MPColliderFix.m_hitbox;
-                PlayerMeshCollider pmc = newGO.AddComponent<PlayerMeshCollider>();
+                PlayerMeshCollider pmc = go.AddComponent<PlayerMeshCollider>();
                 pmc.c_player = __instance.c_player;
 
                 __instance.c_mesh_collider = coll;
@@ -51,17 +59,10 @@ namespace GameMod
         {
             if (!__instance.c_player.m_spectator && __instance.netId != GameManager.m_local_player.c_player_ship.netId)
             {
-                GameObject go = new GameObject("_ship_mesh_collider");
-                var newMesh = UnityEngine.Object.Instantiate(go, Vector3.zero, Quaternion.identity);
-                MeshRenderer mr = newMesh.AddComponent<MeshRenderer>();
-                mr.material = UIManager.gm.m_energy_material;
-                MeshFilter mf = newMesh.AddComponent<MeshFilter>();
-                mf.sharedMesh = __instance.c_automap_go.GetComponentInChildren<MeshFilter>().mesh;
-                mf.transform.localScale = MPColliderFix.m_hitbox;
-                mf.transform.parent = __instance.c_mesh_collider_trans;
-                newMesh.transform.parent = __instance.c_mesh_collider_trans;
-                newMesh.transform.localPosition = __instance.c_mesh_collider_trans.localPosition;
-                newMesh.transform.localRotation = __instance.c_mesh_collider_trans.localRotation;
+                GameObject go = UnityEngine.Object.Instantiate(MPColliderFix.m_prefab);
+                go.transform.parent = __instance.c_mesh_collider_trans;
+                go.transform.localPosition = __instance.c_mesh_collider_trans.localPosition;
+                go.transform.localRotation = __instance.c_mesh_collider_trans.localRotation;
             }
         }
     }
@@ -99,7 +100,7 @@ namespace GameMod
     {
         static void Postfix(Player __instance)
         {
-            __instance.c_player_ship.c_mesh_collider_trans.rotation = Quaternion.AngleAxis(MPColliderFix.m_hitbox_angle, __instance.c_player_ship.c_transform.right) * __instance.c_player_ship.c_transform.rotation;
+            __instance.c_player_ship.c_mesh_collider_trans.rotation = __instance.c_player_ship.c_transform.rotation;
         }
     }
 
@@ -110,7 +111,7 @@ namespace GameMod
         {
             if (GameplayManager.IsMultiplayerActive && __instance.c_mesh_collider_trans != null && __instance.c_transform != null)
             {
-                __instance.c_mesh_collider_trans.localRotation = Quaternion.AngleAxis(MPColliderFix.m_hitbox_angle, __instance.c_transform.right) * __instance.c_transform.localRotation;
+                __instance.c_mesh_collider_trans.localRotation = __instance.c_transform.localRotation;
             }
         }
     }
