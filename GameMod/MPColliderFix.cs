@@ -1,10 +1,14 @@
 ﻿using HarmonyLib;
 using Overload;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Resources;
 using System.Text;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -13,43 +17,7 @@ namespace GameMod
     internal class MPColliderFix
     {
         public static GameObject m_prefab;
-    }
-
-    [HarmonyPatch(typeof(PlayerShip), "Awake")]
-    internal class MPColliderFix_PlayerShip_Awake
-    {
-        public static void Postfix(ref PlayerShip __instance)
-        {
-            if (__instance.c_mesh_collider.GetComponent<MeshCollider>() == null)
-            {
-                // Restructure this to not reload the AB for every ship, OK for testing
-                var ab = AssetBundle.LoadFromFile(Path.Combine(GameMod.Config.OLModDir, @"olmod_assets\playershipmeshcollider"));
-                if (ab == null)
-                {
-                    Debug.Log($"Failed to load PlayershipMeshCollider AssetBundle!");
-                }
-
-                MPColliderFix.m_prefab = ab.LoadAsset<GameObject>("PlayershipCollider");
-                GameObject go = UnityEngine.Object.Instantiate(MPColliderFix.m_prefab);
-                ab.Unload(false);
-
-                var mat_no_friction = __instance.c_mesh_collider.sharedMaterial;
-                UnityEngine.Object.Destroy(__instance.c_mesh_collider);
-                __instance.c_mesh_collider = null;
-                __instance.c_mesh_collider_trans = null;
-
-                go.layer = 16;
-                var coll = go.AddComponent<MeshCollider>();
-                coll.sharedMaterial = mat_no_friction;
-                coll.sharedMesh = go.GetComponentInChildren<MeshFilter>().mesh;
-                coll.transform.parent = null;
-                PlayerMeshCollider pmc = go.AddComponent<PlayerMeshCollider>();
-                pmc.c_player = __instance.c_player;
-
-                __instance.c_mesh_collider = coll;
-                __instance.c_mesh_collider_trans = coll.transform;
-            }
-        }
+        public static GameObject m_go;
     }
 
     [HarmonyPatch(typeof(PlayerShip), "Start")]
@@ -57,12 +25,28 @@ namespace GameMod
     {
         static void Postfix(PlayerShip __instance)
         {
-            if (!__instance.c_player.m_spectator && __instance.netId != GameManager.m_local_player.c_player_ship.netId)
+            if (!GameplayManager.IsMultiplayer)
+                return;
+
+            if (__instance.c_mesh_collider.GetComponent<MeshCollider>() == null)
             {
-                GameObject go = UnityEngine.Object.Instantiate(MPColliderFix.m_prefab);
-                go.transform.parent = __instance.c_mesh_collider_trans;
-                go.transform.localPosition = __instance.c_mesh_collider_trans.localPosition;
-                go.transform.localRotation = __instance.c_mesh_collider_trans.localRotation;
+                if (MPColliderFix.m_prefab == null || MPColliderFix.m_go == null)
+                {
+                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GameMod.Resources.playershipmeshcollider"))
+                    {
+                        var ab = AssetBundle.LoadFromStream(stream);
+                        MPColliderFix.m_prefab = ab.LoadAsset<GameObject>("PlayershipCollider");
+                        MPColliderFix.m_go = UnityEngine.Object.Instantiate(MPColliderFix.m_prefab);
+                        ab.Unload(false);
+                    }
+                }
+
+                UnityEngine.Object.Destroy(__instance.c_mesh_collider);
+                var go = UnityEngine.Object.Instantiate(MPColliderFix.m_prefab);
+                go.GetComponent<MeshRenderer>().sharedMaterial = UIManager.gm.m_energy_material;
+                var coll = go.GetComponent<MeshCollider>();
+                __instance.c_mesh_collider = coll;
+                __instance.c_mesh_collider_trans = __instance.c_mesh_collider.transform;
             }
         }
     }
