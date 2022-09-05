@@ -96,6 +96,20 @@ namespace GameMod {
             }
         }
 
+        public static string GetMMSCollisionMesh()
+        {
+            switch (mms_collision_mesh)
+            {
+                case 0:
+                default:
+                    return "PlayershipCollider-60";
+                case 1:
+                    return "PlayershipCollider-50";
+                case 2:
+                    return "PlayershipCollider-45";
+            }
+        }
+
         public static string GetMMSLagCompensationStrength()
         {
             switch (mms_lag_compensation_strength)
@@ -171,6 +185,7 @@ namespace GameMod {
         public static int mms_match_time_limit = 60;
         public static bool mms_reduced_ship_explosions = true;
         public static bool mms_show_framerate = false;
+        public static int mms_collision_mesh = 0;
     }
 
 
@@ -213,11 +228,13 @@ namespace GameMod {
             position.y += 62f;
             uie.SelectAndDrawStringOptionItem(Loc.LS("PROJECTILE DATA"), position, 16, Menus.mms_mp_projdata_fn == "STOCK" ? "STOCK" : System.IO.Path.GetFileName(Menus.mms_mp_projdata_fn), string.Empty, 1f, false);
             position.y += 62f;
-            if (DateTime.Now > new DateTime(2021, 4, 2))
-            {
-                uie.SelectAndDrawStringOptionItem(Loc.LS("ALLOW SMASH ATTACK"), position, 17, Menus.GetMMSAllowSmash(), Loc.LS("ALLOWS PLAYERS TO USE THE SMASH ATTACK"), 1f, false);
-                position.y += 62f;
-            }
+            //if (DateTime.Now > new DateTime(2021, 4, 2))
+            //{
+            //    uie.SelectAndDrawStringOptionItem(Loc.LS("ALLOW SMASH ATTACK"), position, 17, Menus.GetMMSAllowSmash(), Loc.LS("ALLOWS PLAYERS TO USE THE SMASH ATTACK"), 1f, false);
+            //    position.y += 62f;
+            //}
+            uie.SelectAndDrawStringOptionItem(Loc.LS("COLLISION MESH"), position, 20, Menus.GetMMSCollisionMesh(), Loc.LS("COLLIDER ASSET TO USE FOR PROJ->SHIP COLLISIONS"), 1f, false);
+            position.y += 62f;
         }
 
         private static void AdjustAdvancedPositionCenterColumn(ref Vector2 position)
@@ -434,6 +451,10 @@ namespace GameMod {
                         MenuManager.m_menu_micro_state = 10;
                         MenuManager.UIPulse(2f);
                         MenuManager.PlaySelectSound(1f);
+                        break;
+                    case 20:
+                        Menus.mms_collision_mesh = Menus.mms_collision_mesh + UIManager.m_select_dir % 3;
+                        MenuManager.PlayCycleSound(1f, (float)UIManager.m_select_dir);
                         break;
                 }
             }

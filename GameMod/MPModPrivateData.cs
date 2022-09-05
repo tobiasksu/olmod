@@ -1235,6 +1235,7 @@ END_ENTRY
             set { MPMatchTimeLimits.MatchTimeLimit = value; }
         }
         public static bool AssistScoring { get; set; } = true;
+        public static int ShipMeshCollider { get; set; } = 0;
 
         public static bool JoystickRotationFixSupported
         {
@@ -1263,6 +1264,7 @@ END_ENTRY
             jobject["customprojdata"] = CustomProjdata;
             jobject["matchtimelimit"] = MatchTimeLimit;
             jobject["assistscoring"] = AssistScoring;
+            jobject["shipmeshcollider"] = ShipMeshCollider;
             jobject["joystickrotationfixsupported"] = JoystickRotationFixSupported;
             return jobject;
         }
@@ -1291,6 +1293,7 @@ END_ENTRY
             if (MatchTimeLimit >= 0)
                 NetworkMatch.m_match_time_limit_seconds = MatchTimeLimit;
             AssistScoring = root["assistscoring"].GetBool(true);
+            ShipMeshCollider = root["shipmeshcollider"].GetInt(0);
             JoystickRotationFixSupported = root["joystickrotationfixsupported"].GetBool(false);
         }
 
@@ -1582,6 +1585,7 @@ END_ENTRY
             MPModPrivateData.AllowSmash = Menus.mms_allow_smash;
             MPModPrivateData.MatchTimeLimit = Menus.mms_match_time_limit == 0 ? int.MaxValue : Menus.mms_match_time_limit;
             MPModPrivateData.AssistScoring = Menus.mms_assist_scoring;
+            MPModPrivateData.ShipMeshCollider = Menus.mms_collision_mesh;
             if (Menus.mms_mp_projdata_fn == "STOCK") {
                 MPModPrivateData.CustomProjdata = string.Empty;
             } else {
