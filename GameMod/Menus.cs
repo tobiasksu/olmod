@@ -8,7 +8,8 @@ using HarmonyLib;
 using Overload;
 using UnityEngine;
 
-namespace GameMod {
+namespace GameMod
+{
     public static class Menus
     {
 
@@ -48,6 +49,24 @@ namespace GameMod {
         public static string GetMMSRearViewPIP()
         {
             return MenuManager.GetToggleSetting(Convert.ToInt32(RearView.MPMenuManagerEnabled));
+        }
+
+        public static int mms_audio_occlusion_strength { get; set; } = 0;
+        public static string GetMMSAudioOcclusionStrength()
+        {
+            switch (mms_audio_occlusion_strength)
+            {
+                case 0:
+                    return "OFF";
+                case 1:
+                    return "WEAK";
+                case 2:
+                    return "MEDIUM";
+                case 3:
+                    return "STRONG";
+                default:
+                    return "UNKNOWN";
+            }
         }
 
         public static string GetMMSAlwaysCloaked()
@@ -344,7 +363,7 @@ namespace GameMod {
                     __instance.SelectAndDrawStringOptionItem(Loc.LS("SHOW TEXT FOR AUDIO MESSAGES"), position, 7, MenuManager.GetTextForAudio(), Loc.LS("DISPLAYS ENGLISH TEXT FOR COMM AND LOG AUDIO MESSAGES"), 1.5f, false);
                     position.y += 62f;
                     __instance.SelectAndDrawStringOptionItem(Loc.LS("COCKPIT SWAY"), position, 3, MenuManager.GetHUDSway(), Loc.LS("ADD MOTION TO COCKPIT WHEN MOVING"), 1.5f, false);
-                    
+
                     break;
                 case 1:
                     __instance.SelectAndDrawStringOptionItem(Loc.LS("SHOW SPEEDRUN TIMERS"), position, 8, (!MenuManager.opt_speedrun_timers) ? Loc.LS("NO") : Loc.LS("YES"), Loc.LS("SHOW CURRENT LEVEL AND MISSION TIME ON HUD"), 1.5f, false);
@@ -868,10 +887,10 @@ namespace GameMod {
                                         MenuManager.PlaySelectSound(1f);
                                         MPTeams.UpdateClientColors();
                                         break;
-                                    //case 4:
-                                    //    MPObserver_UIManager_DrawMpPlayerName.showHealthOfTeammates = !MPObserver_UIManager_DrawMpPlayerName.showHealthOfTeammates;
-                                    //    MenuManager.PlaySelectSound(1f);
-                                    //    break;
+                                        //case 4:
+                                        //    MPObserver_UIManager_DrawMpPlayerName.showHealthOfTeammates = !MPObserver_UIManager_DrawMpPlayerName.showHealthOfTeammates;
+                                        //    MenuManager.PlaySelectSound(1f);
+                                        //    break;
                                 }
                                 break;
                             case 2:
@@ -974,6 +993,8 @@ namespace GameMod {
         private static void DrawSoundReload(UIElement uie, ref Vector2 position)
         {
             position.y += 62f;
+            uie.SelectAndDrawStringOptionItem(Loc.LS("AUDIO OCCLUSION STRENGTH"), position, 6, Menus.GetMMSAudioOcclusionStrength());
+            position.y += 62f;
             uie.SelectAndDrawItem("REINITIALIZE AUDIO DEVICE", position, 5, false);
         }
 
@@ -1006,12 +1027,18 @@ namespace GameMod {
     [HarmonyPatch(typeof(MenuManager), "SoundOptionsUpdate")]
     class Menus_MenuManager_SoundOptionsUpdate
     {
-        private static void HandleSoundReload(int menu_selection)
+        private static void AdditionalSoundOptions(int menu_selection)
         {
-            if (menu_selection == 5)
+            switch(menu_selection)
             {
-                AudioSettings.Reset(AudioSettings.GetConfiguration());
-                MenuManager.PlaySelectSound(1f);
+                case 5:
+                    AudioSettings.Reset(AudioSettings.GetConfiguration());
+                    MenuManager.PlaySelectSound(1f);
+                    break;
+                case 6:
+                    Menus.mms_audio_occlusion_strength = (Menus.mms_audio_occlusion_strength + UIManager.m_select_dir) % 4;
+                    MenuManager.PlaySelectSound(1f);
+                    break;
             }
         }
 
@@ -1023,7 +1050,7 @@ namespace GameMod {
                 if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(MenuManager), "UnReverseOption"))
                 {
                     yield return new CodeInstruction(OpCodes.Ldloc_1) { labels = code.labels };
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_SoundOptionsUpdate), "HandleSoundReload"));
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_SoundOptionsUpdate), "AdditionalSoundOptions"));
                     code.labels = null;
                 }
                 yield return code;
@@ -1033,26 +1060,36 @@ namespace GameMod {
 
     // Fix next/previous resolution buttons.
     [HarmonyPatch(typeof(MenuManager), "SelectNextResolution")]
-    class FixSelectNextResolution {
-        static bool Prefix() {
+    class FixSelectNextResolution
+    {
+        static bool Prefix()
+        {
             var resolutions = Screen.resolutions.Where(r => r.width >= 800 && r.height >= 540).Select(r => new Resolution { width = r.width, height = r.height }).Distinct().ToList();
 
-            resolutions.Sort((a, b) => {
+            resolutions.Sort((a, b) =>
+            {
                 return a.width == b.width ? a.height - b.height : a.width - b.width;
             });
 
             var index = resolutions.IndexOf(new Resolution { width = MenuManager.m_resolution_width, height = MenuManager.m_resolution_height });
 
-            if (index == -1) {
+            if (index == -1)
+            {
                 index = resolutions.Count() - 1;
-            } else if (UIManager.m_select_dir > 0) {
+            }
+            else if (UIManager.m_select_dir > 0)
+            {
                 index++;
-                if (index >= resolutions.Count()) {
+                if (index >= resolutions.Count())
+                {
                     index = 0;
                 }
-            } else {
+            }
+            else
+            {
                 index--;
-                if (index < 0) {
+                if (index < 0)
+                {
                     index = resolutions.Count() - 1;
                 }
             }
@@ -1276,7 +1313,7 @@ namespace GameMod {
                             }
                             MenuManager.UnReverseOption();
                         }
-                    }                    
+                    }
                 }
             }
             else if ((float)_MenuManager_m_menu_state_timer_Field.GetValue(null) > 0.25f)
@@ -1800,6 +1837,76 @@ namespace GameMod {
                 }
 
                 return false;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(UIElement), "DrawControlsMenu")]
+    internal class Menus_UIElement_DrawControlsMenu
+    {
+        static void DrawAdditionalBindings(UIElement uie, Vector2 position)
+        {
+            uie.SelectAndDrawControlOption("TOGGLE LOADOUT PRIMARY", position, (int)CCInputExt.ToggleLoadoutPrimary, false);
+            position.y += 48f;
+        }
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+        {
+            int control_remap_page2_count = 0;
+            int state = 0;
+            foreach (var code in codes)
+            {
+                if (code.opcode == OpCodes.Ldsfld && code.operand == AccessTools.Field(typeof(MenuManager), "control_remap_page2"))
+                {
+                    control_remap_page2_count++;
+                    state = 0;
+                }
+
+                if ((control_remap_page2_count == 1 || control_remap_page2_count == 3) && code.opcode == OpCodes.Ldloca_S)                
+                {
+                    state++;
+
+                    if (state == 4)
+                    {
+                        yield return new CodeInstruction(OpCodes.Ldarg_0) { labels = code.labels };
+                        yield return new CodeInstruction(OpCodes.Ldloc_0);
+                        yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_UIElement_DrawControlsMenu), "DrawAdditionalBindings"));
+                        code.labels = null;
+                    }
+                }
+
+                yield return code;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(MenuManager), "ControlsOptionsUpdate")]
+    internal class Menus_MenuManager_ControlsOptionsUpdate
+    {
+        static void PrintDebug()
+        {
+            Debug.Log($"MenuManager.control_remap_index: {MenuManager.control_remap_index}");
+            Debug.Log($"MenuManager.control_remap_name: {MenuManager.control_remap_name}");
+            Debug.Log($"MenuManager.control_remap_alt: {MenuManager.control_remap_alt}");
+            Debug.Log($"UIManager.m_menu_selection: {UIManager.m_menu_selection}");
+            
+            if (UIManager.m_menu_selection >= (int)CCInputExt.ToggleLoadoutPrimary)
+            {
+                MenuManager.control_remap_name = ControlsExt.GetInputName((CCInputExt)UIManager.m_menu_selection);
+            }
+        }
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+        {
+            foreach (var code in codes)
+            {
+                if (code.opcode == OpCodes.Stsfld && code.operand == AccessTools.Field(typeof(MenuManager), "control_remap_name"))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_ControlsOptionsUpdate), "PrintDebug"));
+                    continue;
+                }
+                yield return code;
             }
         }
     }

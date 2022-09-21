@@ -152,6 +152,31 @@ namespace GameMod
                 MPLoadouts.Loadouts[loadoutIndex].missiles[missileIndex] = (MissileType)((((int)MPLoadouts.Loadouts[loadoutIndex].missiles[missileIndex]) + 1) % (int)MissileType.NOVA);
         }
 
+        public static void ToggleLoadoutPrimary(Player player)
+        {
+            var nextWeapon = WeaponType.NUM;
+            if (NetworkMatch.m_force_loadout == 1 && NetworkMatch.m_force_w2 != WeaponType.NUM)
+            {
+                nextWeapon = NetworkMatch.m_force_w1 == player.m_weapon_type ? NetworkMatch.m_force_w2 : NetworkMatch.m_force_w1;
+            }
+            else
+            {
+                var currentLoadout = MPLoadouts.Loadouts[Menus.mms_selected_loadout_idx];
+                if (currentLoadout.loadoutType != MPLoadouts.LoadoutType.GUNNER)
+                    return;
+
+                nextWeapon = currentLoadout.weapons[0] == player.m_weapon_type ? currentLoadout.weapons[1] : currentLoadout.weapons[0];
+            }
+
+            if (nextWeapon == WeaponType.NUM)
+                return;
+
+            player.Networkm_weapon_type = nextWeapon;
+            player.CallCmdSetCurrentWeapon(player.m_weapon_type);
+            player.c_player_ship.WeaponSelectFX();
+            player.UpdateCurrentWeaponName();
+        }
+
         public static void SendPlayerLoadoutToServer()
         {
             if (Client.GetClient() == null)
