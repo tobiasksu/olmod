@@ -1844,9 +1844,9 @@ namespace GameMod
     [HarmonyPatch(typeof(UIElement), "DrawControlsMenu")]
     internal class Menus_UIElement_DrawControlsMenu
     {
-        static void DrawAdditionalBindings(UIElement uie, Vector2 position)
+        static void DrawAdditionalBindings(UIElement uie, Vector2 position, bool joystick)
         {
-            uie.SelectAndDrawControlOption("TOGGLE LOADOUT PRIMARY", position, (int)CCInputExt.ToggleLoadoutPrimary, false);
+            uie.SelectAndDrawControlOption("TOGGLE LOADOUT PRIMARY", position, (int)CCInputExt.TOGGLE_LOADOUT_PRIMARY, joystick);
             position.y += 48f;
         }
 
@@ -1870,6 +1870,9 @@ namespace GameMod
                     {
                         yield return new CodeInstruction(OpCodes.Ldarg_0) { labels = code.labels };
                         yield return new CodeInstruction(OpCodes.Ldloc_0);
+                        yield return new CodeInstruction(OpCodes.Ldc_I4, control_remap_page2_count);
+                        yield return new CodeInstruction(OpCodes.Ldc_I4_1);
+                        yield return new CodeInstruction(OpCodes.Ceq); // control_remap_page2_count == 1 is joystick branch, otherwise MKB
                         yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_UIElement_DrawControlsMenu), "DrawAdditionalBindings"));
                         code.labels = null;
                     }
@@ -1885,15 +1888,66 @@ namespace GameMod
     {
         static void PrintDebug()
         {
-            Debug.Log($"MenuManager.control_remap_index: {MenuManager.control_remap_index}");
-            Debug.Log($"MenuManager.control_remap_name: {MenuManager.control_remap_name}");
-            Debug.Log($"MenuManager.control_remap_alt: {MenuManager.control_remap_alt}");
-            Debug.Log($"UIManager.m_menu_selection: {UIManager.m_menu_selection}");
-            
-            if (UIManager.m_menu_selection >= (int)CCInputExt.ToggleLoadoutPrimary)
+            MenuManager.control_remap_alt = UIManager.m_menu_selection >= 1000;
+            MenuManager.control_remap_index = UIManager.m_menu_selection % 1000;
+            if ((UIManager.m_menu_selection >= (int)CCInputExt.TOGGLE_LOADOUT_PRIMARY && UIManager.m_menu_selection < 1000)
+                || UIManager.m_menu_selection >= (int)CCInputExt.TOGGLE_LOADOUT_PRIMARY + 1000)
             {
-                MenuManager.control_remap_name = ControlsExt.GetInputName((CCInputExt)UIManager.m_menu_selection);
+                MenuManager.control_remap_name = ControlsExt.GetInputName((CCInputExt)(UIManager.m_menu_selection % 1000));
             }
+        }
+
+        static void SetInputKB(int idx, bool alt, KeyCode kc)
+        {
+            int exclusionMask = ControlsExt.GetExclusionMask((CCInputExt)idx);
+            for (int i = 0; i < 45; i++)
+            {
+                if ((exclusionMask & ControlsExt.GetExclusionMask((CCInputExt)i)) != 0)
+                {
+                    if (Controls.m_input_kc[0, i] == kc)
+                    {
+                        Controls.m_input_kc[0, i] = KeyCode.None;
+                    }
+                    if (Controls.m_input_kc[1, i] == kc)
+                    {
+                        Controls.m_input_kc[1, i] = KeyCode.None;
+                    }
+                }
+            }
+            for (int i = (int)CCInputExt.TOGGLE_LOADOUT_PRIMARY; i < ControlsExt.MAX_ARRAY_SIZE; i++)
+            {
+                if ((exclusionMask & ControlsExt.GetExclusionMask((CCInputExt)i)) != 0)
+                {
+                    if (Controls.m_input_kc[0, i] == kc)
+                    {
+                        Controls.m_input_kc[0, i] = KeyCode.None;
+                    }
+                    if (Controls.m_input_kc[1, i] == kc)
+                    {
+                        Controls.m_input_kc[1, i] = KeyCode.None;
+                    }
+                }
+            }
+            Controls.m_input_kc[(!alt) ? 0 : 1, idx] = kc;
+        }
+
+        private static void PatchMenuSelection()
+        {
+            UIManager.m_menu_selection = MenuManager.control_remap_index + ((!MenuManager.control_remap_alt) ? 0 : 1000);
+        }
+
+        private static void ResetControlKB(int idx, int slot)
+        {
+            var _idx = UIManager.m_menu_selection % 1000;
+            var _slot = UIManager.m_menu_selection < 1000 ? 0 : 1;
+            Controls.ResetControlKB(_idx, _slot);
+        }
+
+        private static void ResetControlJoy(int idx, int slot)
+        {
+            var _idx = UIManager.m_menu_selection % 1000;
+            var _slot = UIManager.m_menu_selection < 1000 ? 0 : 1;
+            Controls.ResetControlJoy(_idx, _slot);
         }
 
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
@@ -1905,6 +1959,29 @@ namespace GameMod
                     yield return code;
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_ControlsOptionsUpdate), "PrintDebug"));
                     continue;
+                }
+
+                if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(Controls), "SetInputKB"))
+                {
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_ControlsOptionsUpdate), "SetInputKB"));
+                    continue;
+                }
+
+                if (code.opcode == OpCodes.Stsfld && code.operand == AccessTools.Field(typeof(UIManager), "m_menu_selection"))
+                {
+                    yield return code;
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Menus_MenuManager_ControlsOptionsUpdate), "PatchMenuSelection"));
+                    continue;
+                }
+
+                if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(Controls), "ResetControlKB"))
+                {
+                    code.operand = AccessTools.Method(typeof(Menus_MenuManager_ControlsOptionsUpdate), "ResetControlKB");
+                }
+
+                if (code.opcode == OpCodes.Call && code.operand == AccessTools.Method(typeof(Controls), "ResetControlJoy"))
+                {
+                    code.operand = AccessTools.Method(typeof(Menus_MenuManager_ControlsOptionsUpdate), "ResetControlJoy");
                 }
                 yield return code;
             }
