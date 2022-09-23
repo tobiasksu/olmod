@@ -158,7 +158,6 @@ namespace GameMod
         {
             yield return AccessTools.Method(typeof(Controls), "UpdateDevice");
             yield return AccessTools.Method(typeof(Controls), "ClearKBMouse");
-            yield return AccessTools.Method(typeof(Controls), "ClearJoystickSlotsMenu");
             yield return AccessTools.Method(typeof(Controls), "ClearControlsForController");
             yield return AccessTools.Method(typeof(PlayerShip), "UpdateReadImmediateControls");
         }
@@ -204,7 +203,6 @@ namespace GameMod
     {
         static bool Prefix(int mask, RWInput rwi)
         {
-            Debug.Log($"Called ControlsExt_Controls_ClearMatchingControls({mask}, {rwi.Value()})");
             for (int i = 0; i < 45; i++)
             {
                 if ((mask & ControlsExt.GetExclusionMask((CCInputExt)i)) != 0)
@@ -251,32 +249,6 @@ namespace GameMod
             int num = (!alt) ? 0 : 1;
             Controls.m_input_joy[num, idx].Copy(rwi);
 
-            return false;
-        }
-    }
-
-    [HarmonyPatch(typeof(Controls), "ClearJoystickSlotsMenu")]
-    internal class ControlsExt_Controls_ClearJoystickSlotsMenu
-    {
-        static bool Prefix()
-        {
-            Debug.Log($"ClearJoystickSlotsMenu()");
-
-            //for (int i = 0; i <= 1; i++)
-            //{
-            //    for (int j = 45; j < 59; j++)
-            //    {
-            //        Controls.m_input_joy[i, j].Clear();
-            //    }
-            //}
-
-            //for (int i = 0; i <= 1; i++)
-            //{
-            //    for (int j = (int)CCInputExt.TOGGLE_LOADOUT_PRIMARY; j < ControlsExt.MAX_ARRAY_SIZE; j++)
-            //    {
-            //        Controls.m_input_joy[i, j].Clear();
-            //    }
-            //}
             return false;
         }
     }
