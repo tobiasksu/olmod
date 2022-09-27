@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using Overload;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 
@@ -161,6 +162,46 @@ namespace GameMod
                         {
                             StopThunderboltSelfDamageLoop();
                         }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Cyclone Tweaks
+        /// </summary>
+        internal static class Cyclone
+        {
+            private static FieldInfo _PlayerShip_flak_fire_count_Field = typeof(PlayerShip).GetField("flak_fire_count", BindingFlags.NonPublic | BindingFlags.Instance);
+            public static int CycloneSpinupAdjustment = -1;
+
+            static float GetCycloneSpinupAdjustment(PlayerShip player_ship)
+            {
+                int flak_fire_count = (int)_PlayerShip_flak_fire_count_Field.GetValue(player_ship);
+                if (CycloneSpinupAdjustment != -1 && flak_fire_count == 0)
+                {
+                    flak_fire_count += CycloneSpinupAdjustment;
+                    _PlayerShip_flak_fire_count_Field.SetValue(player_ship, flak_fire_count);
+                }
+                return 1f - Mathf.Min(flak_fire_count * 0.05f, (player_ship.c_player.m_weapon_level[(int)player_ship.c_player.m_weapon_type] != WeaponUnlock.LEVEL_2B) ? 0.4f : 0.25f);
+            }
+
+            [HarmonyPatch(typeof(PlayerShip), "MaybeFireWeapon")]
+            internal class MPWeaponBehavior_Cyclone_PlayerShip_MaybeFireWeapon
+            {
+                static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> codes)
+                {
+                    foreach (var code in codes)
+                    {
+                        if (code.opcode == OpCodes.Stloc_S && ((LocalBuilder)code.operand).LocalIndex == 19)
+                        {
+                            yield return code;
+                            yield return new CodeInstruction(OpCodes.Ldarg_0);
+                            yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Cyclone), "GetCycloneSpinupAdjustment"));
+                            yield return new CodeInstruction(OpCodes.Stloc_S, 19);
+                            continue;
+                        }
+                        yield return code;
                     }
                 }
             }

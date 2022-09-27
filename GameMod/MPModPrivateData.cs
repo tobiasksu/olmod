@@ -1247,6 +1247,12 @@ END_ENTRY
             set { MPThunderboltPassthrough.isAllowed = value; }
         }
 
+        public static int CycloneSpinupAdjustment
+        {
+            get { return MPWeaponBehavior.Cyclone.CycloneSpinupAdjustment; }
+            set { MPWeaponBehavior.Cyclone.CycloneSpinupAdjustment = value; }
+        }
+
         public static JObject Serialize()
         {
             JObject jobject = new JObject();
@@ -1270,6 +1276,7 @@ END_ENTRY
             jobject["assistscoring"] = AssistScoring;
             jobject["joystickrotationfixsupported"] = JoystickRotationFixSupported;
             jobject["thunderboltpassthrough"] = ThunderboltPassthrough;
+            jobject["cyclonespinupadjustment"] = CycloneSpinupAdjustment;
             return jobject;
         }
 
@@ -1299,6 +1306,7 @@ END_ENTRY
             AssistScoring = root["assistscoring"].GetBool(true);
             JoystickRotationFixSupported = root["joystickrotationfixsupported"].GetBool(false);
             ThunderboltPassthrough = root["thunderboltpassthrough"].GetBool(false);
+            CycloneSpinupAdjustment = root["cyclonespinupadjustment"].GetInt(-1);
         }
 
         public static string GetModeString(MatchMode mode)

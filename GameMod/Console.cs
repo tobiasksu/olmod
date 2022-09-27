@@ -159,6 +159,19 @@ namespace GameMod {
             }
         }
 
+        static void CmdCycloneSpinup()
+        {
+            int cycloneSpinup = uConsole.GetInt();
+            if (cycloneSpinup == -1)
+            {
+                cycloneSpinup = MPWeaponBehavior.Cyclone.CycloneSpinupAdjustment;
+                uConsole.Log($"Cyclone spinup is currently {cycloneSpinup}");
+                return;
+            }
+            MPWeaponBehavior.Cyclone.CycloneSpinupAdjustment = cycloneSpinup;
+            uConsole.Log($"Cyclone spinup set to {cycloneSpinup}");
+        }
+
         public static void RegisterCommands()
         {
             uConsole.RegisterCommand("dump_segments", "Dump segment data", new uConsole.DebugCommand(CmdDumpSegments));
@@ -168,6 +181,7 @@ namespace GameMod {
             uConsole.RegisterCommand("ui_color", "Set UI color #aabbcc", new uConsole.DebugCommand(CmdUIColor));
             uConsole.RegisterCommand("vr_scale", "Set VR scale (0.1 to 10)", new uConsole.DebugCommand(CmdVRScale));
             uConsole.RegisterCommand("xp", "Set XP", new uConsole.DebugCommand(CmdXP));
+            uConsole.RegisterCommand("cyclone_spinup", "Set Cyclone Spinup Adjustment", new uConsole.DebugCommand(CmdCycloneSpinup));
         }
     }
 
