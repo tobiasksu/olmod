@@ -1,11 +1,9 @@
 ﻿using HarmonyLib;
 using Overload;
-using Rewired;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
-using static YamlDotNet.Samples.DeserializeObjectGraph;
 
 namespace GameMod
 {
