@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\..\..\..\..\..\Program Files %28x86%29\Steam\steamapps\common\Overload\olmod-testing\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -107,6 +107,7 @@
     <Compile Include="FramerateLimiter.cs" />
     <Compile Include="MPShips.cs" />
     <Compile Include="MPColliderSwap.cs" />
+    <Compile Include="MPBots.cs" />
     <Compile Include="MPPacketStatus.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Console.cs" />

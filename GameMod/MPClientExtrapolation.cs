@@ -28,6 +28,7 @@ namespace GameMod {
             // Bail if:
             if (
                 !GameplayManager.IsMultiplayerActive ||          // it's not a MP game (no network)
+                c_proj.m_team == ProjTeam.ENEMY ||               // do not lerp bot projectiles
                 Network.isServer ||                              // if it's the server (not necessary)
                 MPObserver.Enabled ||                            // if the current player is an observer (not necessary for observer games)
                 c_proj.m_owner_player.isLocalPlayer ||           // it's the local player (not necessary)
