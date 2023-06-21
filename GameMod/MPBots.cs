@@ -16,6 +16,8 @@ namespace GameMod
             { NetworkHash128.Parse("e2658f"), (GameObject)Resources.Load("entity_enemy_ViperA") }
         };
 
+        public static PlayerShip m_target_ship = GameManager.m_local_player.c_player_ship;
+
         /// <summary>
         /// Client-side handler
         /// </summary>
@@ -131,19 +133,22 @@ namespace GameMod
             if (!Overload.NetworkManager.IsServer())
                 return false;
 
-            return false;
+            return true;
         }
     }
 
     [HarmonyPatch(typeof(Robot), "Update")]
     class MPBots_Robot_Update
     {
-        static bool Prefix()
+        static bool Prefix(ref PlayerShip ___m_player_ship)
         {
             if (!Overload.NetworkManager.IsServer())
                 return false;
 
-            return false;
+            // For now, force Robot instance m_player_ship = first on scoreboard
+            ___m_player_ship = Overload.NetworkManager.m_PlayersForScoreboard.FirstOrDefault().c_player_ship;
+
+            return true;
         }
     }
 
@@ -156,15 +161,15 @@ namespace GameMod
                 return false;
 
             // mucking around, shoot a bunch of projectiles for one second, every five seconds
-            if ((int)NetworkMatch.m_match_elapsed_seconds % 5 == 0)
-            {
-                //__instance.MaybeFire();
-                Quaternion rot = __instance.c_transform.rotation;
+            //if ((int)NetworkMatch.m_match_elapsed_seconds % 5 == 0)
+            //{
+            //    //__instance.MaybeFire();
+            //    Quaternion rot = __instance.c_transform.rotation;
 
-                ProjectileManager.FireProjectileRobot(__instance, __instance.m_fire_projectile, __instance.fire_pos[___fire_pos_index].position, rot, __instance.c_go, 0f, ProjTeam.ENEMY, __instance.m_fire_proj_level, true);
-            }
+            //    ProjectileManager.FireProjectileRobot(__instance, __instance.m_fire_projectile, __instance.fire_pos[___fire_pos_index].position, rot, __instance.c_go, 0f, ProjTeam.ENEMY, __instance.m_fire_proj_level, true);
+            //}
 
-            return false;
+            return true;
         }
     }
 
@@ -233,6 +238,18 @@ namespace GameMod
         static void Postfix()
         {
             Physics.IgnoreLayerCollision(13, 11, false);
+        }
+    }
+
+    /// <summary>
+    /// TODO: Fix recent kills in feed throwing exceptions
+    /// </summary>
+    [HarmonyPatch(typeof(Player), "OnKilledByPlayer")]
+    class MPBots_Player_OnKilledByPlayer
+    {
+        static bool Prefix()
+        {
+            return false;
         }
     }
 
