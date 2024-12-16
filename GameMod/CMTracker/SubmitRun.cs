@@ -22,12 +22,12 @@ namespace GameMod.CMTracker
                 GameplayManager.m_level_info.Mission.FileName != "_EDITOR" &&
                 (int)ChallengeManager.ChallengeRobotsDestroyed > 0)
             {
-                string url = $"{Config.Settings.Value<string>("trackerBaseUrl")}/api/challengemoderun";
+                var url = $"{Config.Settings.Value<string>("trackerBaseUrl")}/api/challengemoderun";
                 Post(url, GetPostData());
             }
         }
 
-        private static void Post(string url, Models.Run run)
+        private static void Post(string url, Run run)
         {
             var request = new UnityWebRequest(url)
             {
@@ -48,9 +48,9 @@ namespace GameMod.CMTracker
             yield return op;
         }
 
-        private static Models.Run GetPostData()
+        private static Run GetPostData()
         {
-            var request = new Models.Run
+            var request = new Run
             {
                 PlayerId = PlayerPrefs.GetString("UserID"),
                 PilotName = PilotManager.PilotName,

@@ -20,7 +20,7 @@ namespace GameMod.CMTracker.Models
         public float AutoOpDamage { get; set; }
         public int AutoOpKills { get; set; }
         public float SelfDamage { get; set; }
-        public List<Models.RobotStat> RobotStats { get; set; }
-        public List<Models.PlayerStat> PlayerStats { get; set; }
+        public List<RobotStat> RobotStats { get; set; }
+        public List<PlayerStat> PlayerStats { get; set; }
     }
 }

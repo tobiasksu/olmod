@@ -170,6 +170,7 @@ namespace GameMod.CMTracker
                     m_score = x.Score,
                     m_time_stamp = x.DateAdded
                 }).ToArray();
+
                 CMTracker_Platform_GetLeaderboardData.m_download_state = CMTracker_Platform_GetLeaderboardData.DownloadState.HaveData;
             }
         }
