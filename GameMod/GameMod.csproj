@@ -104,6 +104,12 @@
     <Compile Include="AddOnLevelSort.cs" />
     <Compile Include="AmbientUnload.cs" />
     <Compile Include="AxisCountFix.cs" />
+    <Compile Include="CMTracker\Models\LeaderboardEntry.cs" />
+    <Compile Include="CMTracker\Models\PlayerStat.cs" />
+    <Compile Include="CMTracker\Models\RobotStat.cs" />
+    <Compile Include="CMTracker\Models\Run.cs" />
+    <Compile Include="CMTracker\Platform.cs" />
+    <Compile Include="CMTracker\SubmitRun.cs" />
     <Compile Include="MouseSlidingFix.cs" />
     <Compile Include="MPMatchInfo.cs" />
     <Compile Include="MPSpawnExtension.cs" />
